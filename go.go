@@ -151,6 +151,10 @@ type Sym struct {
 	Fsym *Sym // funcsym
 }
 
+func (s Sym) String() string {
+	return "<Sym>"
+}
+
 type Type struct {
 	Etype       uint8
 	Nointerface bool

@@ -80,8 +80,8 @@ func (n *Node) Val() Val {
 func (n *Node) SetVal(v Val) {
 	if n.hasVal == -1 {
 		Debug['h'] = 1
-		Dump("have Opt", n)
-		Fatalf("have Opt")
+		//Dump("have Opt", n)
+		panic("have Opt")
 	}
 	n.hasVal = +1
 	n.E = v.U
@@ -103,8 +103,8 @@ func (n *Node) SetOpt(x interface{}) {
 	}
 	if n.hasVal == +1 {
 		Debug['h'] = 1
-		Dump("have Val", n)
-		Fatalf("have Val")
+		//Dump("have Val", n)
+		panic("have Val")
 	}
 	n.hasVal = -1
 	n.E = x
@@ -484,7 +484,7 @@ func count(l *NodeList) int {
 		n++
 	}
 	if int64(int(n)) != n { // Overflow.
-		Yyerror("too many elements in list")
+		panic("too many elements in list")
 	}
 	return int(n)
 }
