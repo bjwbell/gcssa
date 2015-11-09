@@ -1,4 +1,4 @@
-package gcssa
+package gc
 
 import "math/big"
 

@@ -29,6 +29,7 @@ func filePath(pathName string) string {
 }
 
 func main() {
+	var pkgName = flag.String("pkg", "", "input file package name")
 	var f = flag.String("f", "", "input file with function definitions")
 	var fn = flag.String("fn", "", "function name")
 	flag.Parse()
@@ -41,6 +42,9 @@ func main() {
 	if *fn == "" {
 		log.Fatalf("Error no function name(s) provided")
 	}
+	if *pkgName == "" {
+		*pkgName = filePath(file)
+	}
 
 	var conf types.Config
 	conf.Importer = importer.Default()
@@ -51,7 +55,7 @@ func main() {
 		return
 	}
 	files := []*ast.File{fileAst}
-	pkg, err := conf.Check(filePath(file), fset, files, nil)
+	pkg, err := conf.Check(*pkgName, fset, files, nil)
 	if err != nil {
 		fmt.Printf("Error type checking %v, error message: %v\n", file, err)
 		return
@@ -80,6 +84,21 @@ func main() {
 	fmt.Println("node: ", node)
 }
 
-func ConvertFnToNode(fn *types.Func) *gcssa.Node {
+func test() {
+}
+
+func ConvertFnToNode(fn *types.Func) *gc.Node {
+	signature, ok := fn.Type().(*types.Signature)
+	if !ok {
+		panic("function type is not types.Signature")
+	}
+	fmt.Println("signature: ", signature.String())
+	if signature.Recv() != nil {
+		fmt.Println("Methods not supported")
+		return nil
+	}
+	if signature.Results().Len() > 1 {
+		fmt.Println("Multiple return values not supported")
+	}
 	return nil
 }

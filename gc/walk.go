@@ -1,4 +1,4 @@
-package gcssa
+package gc
 
 func countfield(t *Type) int {
 	n := 0

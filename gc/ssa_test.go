@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package gcssa
+package gc
 
 import (
 	"bytes"
-	"internal/testenv"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -26,7 +25,6 @@ func doTest(t *testing.T, filename string, kind string) {
 	if runtime.GOARCH != "amd64" {
 		t.Skipf("skipping SSA tests on %s for now", runtime.GOARCH)
 	}
-	testenv.MustHaveGoBuild(t)
 	var stdout, stderr bytes.Buffer
 	cmd := exec.Command("go", kind, filepath.Join("testdata", filename))
 	cmd.Stdout = &stdout

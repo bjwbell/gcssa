@@ -1,4 +1,4 @@
-package gcssa
+package gc
 
 func typenod(t *Type) *Node {
 	// if we copied another type with *t = *u

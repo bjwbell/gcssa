@@ -7,7 +7,7 @@
 // to an import cycle with this package and ../ssa.
 // TODO: move Type to its own package, then we don't need to dance around import cycles.
 
-package gcssa
+package gc
 
 import (
 	"ssa"

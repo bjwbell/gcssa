@@ -4,7 +4,7 @@
 
 // “Abstract” syntax representation.
 
-package gcssa
+package gc
 
 // A Node is a single node in the syntax tree.
 // Actually the syntax tree is a syntax DAG, because there is only one
