@@ -11,6 +11,8 @@ import (
 	"go/types"
 	"strings"
 
+	"github.com/bjwbell/cmd/obj"
+
 	"ssa"
 )
 
@@ -93,8 +95,8 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 
 	var e ssaExport
 	e.log = usessa
-
-	s.config = ssa.NewConfig(Thearch.Thestring, &e, nil)
+	link := obj.Link{}
+	s.config = ssa.NewConfig(Thearch.Thestring, &e, &link)
 	s.ctx = ctx
 	s.f = s.config.NewFunc()
 	s.f.Name = name
