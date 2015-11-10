@@ -53,7 +53,7 @@ func (n *Node) Bool() bool {
 }
 
 func consttype(n *Node) int {
-	if n == nil || n.Op != OLITERAL {
+	if n == nil || n.Op() != OLITERAL {
 		return -1
 	}
 	return int(n.Val().Ctype())

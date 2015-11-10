@@ -48,22 +48,27 @@ func main() {
 
 	var conf types.Config
 	conf.Importer = importer.Default()
+
 	fset := token.NewFileSet()
 	fileAst, err := parser.ParseFile(fset, file, nil, parser.AllErrors)
+	fileTok := fset.File(fileAst.Pos())
 	if err != nil {
 		fmt.Printf("Error parsing %v, error message: %v\n", file, err)
 		return
 	}
 	files := []*ast.File{fileAst}
-	pkg, err := conf.Check(*pkgName, fset, files, nil)
+	info := types.Info{
+		Types: make(map[ast.Expr]types.TypeAndValue),
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+	}
+	pkg, err := conf.Check(*pkgName, fset, files, &info)
 	if err != nil {
 		fmt.Printf("Error type checking %v, error message: %v\n", file, err)
 		return
 	}
 
 	fmt.Println("pkg: ", pkg)
-	fmt.Println("pkg.Name: ", pkg.Name())
-	fmt.Println("pkg.Path: ", pkg.Path())
 	fmt.Println("pkg.Complete:", pkg.Complete())
 	scope := pkg.Scope()
 	obj := scope.Lookup(*fn)
@@ -71,34 +76,23 @@ func main() {
 		fmt.Println("Couldnt lookup function: ", *fn)
 		return
 	}
-	fmt.Println("obj: ", obj)
-	fmt.Println("obj.Id: ", obj.Id())
-	fmt.Println("obj.Type: ", obj.Type())
-	typ := obj.Type()
 	function, ok := obj.(*types.Func)
 	if !ok {
-		fmt.Printf("Function %v is of type %v\n", *fn, typ.String())
+		fmt.Printf("%v is a %v, not a function\n", *fn, obj.Type().String())
 	}
-	fmt.Println("function: ", function)
-	node := ConvertFnToNode(function)
-	fmt.Println("node: ", node)
-}
-
-func test() {
-}
-
-func ConvertFnToNode(fn *types.Func) *gc.Node {
-	signature, ok := fn.Type().(*types.Signature)
-	if !ok {
-		panic("function type is not types.Signature")
+	var fnDecl *ast.FuncDecl
+	for _, decl := range fileAst.Decls {
+		if fdecl, ok := decl.(*ast.FuncDecl); ok {
+			if fdecl.Name.Name == *fn {
+				fnDecl = fdecl
+				break
+			}
+		}
 	}
-	fmt.Println("signature: ", signature.String())
-	if signature.Recv() != nil {
-		fmt.Println("Methods not supported")
-		return nil
+	if fnDecl == nil {
+		fmt.Println("couldn't find function: ", *fn)
+		return
 	}
-	if signature.Results().Len() > 1 {
-		fmt.Println("Multiple return values not supported")
-	}
-	return nil
+	ss, ok := gc.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
+	fmt.Printf("ssa, ok: %v, %v\n", ss, ok)
 }

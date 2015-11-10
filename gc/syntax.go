@@ -6,99 +6,30 @@
 
 package gc
 
-// A Node is a single node in the syntax tree.
-// Actually the syntax tree is a syntax DAG, because there is only one
-// node with Op=ONAME for a given instance of a variable x.
-// The same is true for Op=OTYPE and Op=OLITERAL.
-type Node struct {
-	// Tree structure.
-	// Generic recursive walks should follow these fields.
-	Left  *Node
-	Right *Node
-	Ninit *NodeList
-	Nbody *NodeList
-	List  *NodeList
-	Rlist *NodeList
-
-	// most nodes
-	Type *Type
-	Orig *Node // original form, for printing, and tracking copies of ONAMEs
-
-	// func
-	Func *Func
-
-	// ONAME
-	Name *Name
-
-	Sym *Sym        // various
-	E   interface{} // Opt or Val, see methods below
-
-	Xoffset int64
-
-	Lineno int32
-
-	// OREGISTER, OINDREG
-	Reg int16
-
-	Esc uint16 // EscXXX
-
-	Op          uint8
-	Nointerface bool
-	Ullman      uint8 // sethi/ullman number
-	Addable     bool  // addressable
-	Etype       uint8 // op for OASOP, etype for OTYPE, exclam for export, 6g saved reg
-	Bounded     bool  // bounds check unnecessary
-	Class       uint8 // PPARAM, PAUTO, PEXTERN, etc
-	Embedded    uint8 // ODCLFIELD embedded type
-	Colas       bool  // OAS resulting from :=
-	Diag        uint8 // already printed error about this
-	Noescape    bool  // func arguments do not escape; TODO(rsc): move Noescape to Func struct (see CL 7360)
-	Walkdef     uint8
-	Typecheck   uint8
-	Local       bool
-	Dodata      uint8
-	Initorder   uint8
-	Used        bool
-	Isddd       bool // is the argument variadic
-	Implicit    bool
-	Addrtaken   bool // address taken, even if not moved to heap
-	Assigned    bool // is the variable ever assigned to
-	Likely      int8 // likeliness of if statement
-	Hasbreak    bool // has break statement
-	hasVal      int8 // +1 for Val, -1 for Opt, 0 for not yet set
-}
-
-// Val returns the Val for the node.
-func (n *Node) Val() Val {
-	if n.hasVal != +1 {
-		return Val{}
-	}
-	return Val{n.E}
-}
-
 // SetVal sets the Val for the node, which must not have been used with SetOpt.
 func (n *Node) SetVal(v Val) {
-	if n.hasVal == -1 {
+	/*if n.hasVal == -1 {
 		Debug['h'] = 1
 		//Dump("have Opt", n)
 		panic("have Opt")
 	}
 	n.hasVal = +1
-	n.E = v.U
+	n.E = v.U*/
 }
 
 // Opt returns the optimizer data for the node.
 func (n *Node) Opt() interface{} {
-	if n.hasVal != -1 {
+	/*if n.hasVal != -1 {
 		return nil
 	}
-	return n.E
+	return n.E*/
+	return nil
 }
 
 // SetOpt sets the optimizer data for the node, which must not have been used with SetVal.
 // SetOpt(nil) is ignored for Vals to simplify call sites that are clearing Opts.
 func (n *Node) SetOpt(x interface{}) {
-	if x == nil && n.hasVal >= 0 {
+	/*if x == nil && n.hasVal >= 0 {
 		return
 	}
 	if n.hasVal == +1 {
@@ -107,7 +38,7 @@ func (n *Node) SetOpt(x interface{}) {
 		panic("have Val")
 	}
 	n.hasVal = -1
-	n.E = x
+	n.E = x*/
 }
 
 func (n *Node) String() string {
@@ -143,7 +74,6 @@ type Param struct {
 	Stackparam *Node // OPARAM node referring to stack copy of param
 
 	// ONAME PPARAM
-	Field *Type // TFIELD in arg struct
 
 	// ONAME closure param with PPARAMREF
 	Outer   *Node // outer PPARAMREF in nested closure
@@ -152,21 +82,21 @@ type Param struct {
 
 // Func holds Node fields used only with function-like nodes.
 type Func struct {
-	Shortname  *Node
-	Enter      *NodeList // for example, allocate and initialize memory for escaping parameters
-	Exit       *NodeList
-	Cvars      *NodeList // closure params
-	Dcl        *NodeList // autodcl for this func/closure
-	Inldcl     *NodeList // copy of dcl for use in inlining
-	Closgen    int
-	Outerfunc  *Node
-	Fieldtrack []*Type
-	Outer      *Node // outer func for closure
-	Ntype      *Node // signature
-	Top        int   // top context (Ecall, Eproc, etc)
-	Closure    *Node // OCLOSURE <-> ODCLFUNC
-	FCurfn     *Node
-	Nname      *Node
+	Shortname *Node
+	Enter     *NodeList // for example, allocate and initialize memory for escaping parameters
+	Exit      *NodeList
+	Cvars     *NodeList // closure params
+	Dcl       *NodeList // autodcl for this func/closure
+	Inldcl    *NodeList // copy of dcl for use in inlining
+	Closgen   int
+	Outerfunc *Node
+
+	Outer   *Node // outer func for closure
+	Ntype   *Node // signature
+	Top     int   // top context (Ecall, Eproc, etc)
+	Closure *Node // OCLOSURE <-> ODCLFUNC
+	FCurfn  *Node
+	Nname   *Node
 
 	Inl     *NodeList // copy of the body for use in inlining
 	InlCost int32
@@ -391,10 +321,11 @@ func concat(a *NodeList, b *NodeList) *NodeList {
 
 // list1 returns a one-element list containing n.
 func list1(n *Node) *NodeList {
-	if n == nil {
+	return nil
+	/*if n == nil {
 		return nil
 	}
-	if n.Op == OBLOCK && n.Ninit == nil {
+	if n.Op() == OBLOCK && n.Ninit == nil {
 		// Flatten list and steal storage.
 		// Poison pointer to catch errant uses.
 		l := n.List
@@ -406,7 +337,7 @@ func list1(n *Node) *NodeList {
 	l := new(NodeList)
 	l.N = n
 	l.End = l
-	return l
+	return l*/
 }
 
 // list returns the result of appending n to l.

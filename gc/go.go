@@ -155,69 +155,6 @@ func (s Sym) String() string {
 	return "<Sym>"
 }
 
-type Type struct {
-	Etype       uint8
-	Nointerface bool
-	Noalg       bool
-	Chan        uint8
-	Trecur      uint8 // to detect loops
-	Printed     bool
-	Embedded    uint8 // TFIELD embedded type
-	Funarg      bool  // on TSTRUCT and TFIELD
-	Copyany     bool
-	Local       bool // created in this file
-	Deferwidth  bool
-	Broke       bool // broken type definition.
-	Isddd       bool // TFIELD is ... argument
-	Align       uint8
-	Haspointers uint8 // 0 unknown, 1 no, 2 yes
-
-	Nod    *Node // canonical OTYPE node
-	Orig   *Type // original type (type literal or predefined type)
-	Lineno int
-
-	// TFUNC
-	Thistuple int
-	Outtuple  int
-	Intuple   int
-	Outnamed  bool
-
-	Method  *Type
-	Xmethod *Type
-
-	Sym    *Sym
-	Vargen int32 // unique name for OTYPE/ONAME
-
-	Nname  *Node
-	Argwid int64
-
-	// most nodes
-	Type  *Type // actual type for TFIELD, element type for TARRAY, TCHAN, TMAP, TPTRxx
-	Width int64 // offset in TFIELD, width in all others
-
-	// TFIELD
-	Down  *Type   // next struct field, also key type in TMAP
-	Outer *Type   // outer struct
-	Note  *string // literal string annotation
-
-	// TARRAY
-	Bound int64 // negative is slice
-
-	// TMAP
-	Bucket *Type // internal type representing a hash bucket
-	Hmap   *Type // internal type representing a Hmap (map header object)
-	Hiter  *Type // internal type representing hash iterator state
-	Map    *Type // link from the above 3 internal types back to the map type.
-
-	Maplineno   int32 // first use of TFORW as map key
-	Embedlineno int32 // first use of TFORW as embedded type
-
-	// for TFORW, where to copy the eventual value to
-	Copyto []*Node
-
-	Lastfn *Node // for usefield
-}
-
 /*type Label struct {
 	Sym  *Sym
 	Def  *Node
@@ -256,12 +193,6 @@ const (
 )
 
 var dclstack *Sym
-
-type Iter struct {
-	Done  int
-	Tfunc *Type
-	T     *Type
-}
 
 const (
 	Txxx = iota
@@ -371,37 +302,6 @@ type Typedef struct {
 	Sameas int
 }
 
-type Sig struct {
-	name   string
-	pkg    *Pkg
-	isym   *Sym
-	tsym   *Sym
-	type_  *Type
-	mtype  *Type
-	offset int32
-}
-
-/*type Io struct {
-	infile     string
-	bin        *obj.Biobuf
-	cp         string // used for content when bin==nil
-	last       int
-	peekc      int
-	peekc1     int // second peekc for ...
-	nlsemi     bool
-	eofnl      bool
-	importsafe bool
-}*/
-
-type Dlist struct {
-	field *Type
-}
-
-type Idir struct {
-	link *Idir
-	dir  string
-}
-
 /*
  * argument passing to/from
  * smagic and umagic
@@ -452,12 +352,6 @@ var sizeof_Array int // runtime sizeof(Array)
  */
 var sizeof_String int // runtime sizeof(String)
 
-var dotlist [10]Dlist // size is max depth of embeddeds
-
-//var curio Io
-
-//var pushedio Io
-
 var lexlineno int32
 
 var lineno int32
@@ -469,8 +363,6 @@ var pragcgobuf string
 var infile string
 
 var outfile string
-
-//var bout *obj.Biobuf
 
 var nerrors int
 
@@ -527,8 +419,6 @@ var trackpkg *Pkg // fake package for field tracking
 var Tptr int // either TPTR32 or TPTR64
 
 var myimportpath string
-
-var idirs *Idir
 
 var localimport string
 
@@ -622,9 +512,9 @@ var hasdefer bool // flag that curfn has defer statement
 
 var Curfn *Node
 
-var Widthptr int
+var Widthptr int = 8
 
-var Widthint int
+var Widthint int = 8
 
 var Widthreg int
 
@@ -841,7 +731,6 @@ type Arch struct {
 	FtoB         func(int) uint64
 	BtoR         func(uint64) int
 	BtoF         func(uint64) int
-	Optoas       func(int, *Type) int
 	Doregbits    func(int) uint64
 	Regnames     func(*int) []string
 	Use387       bool // should 8g use 387 FP instructions instead of sse2.
