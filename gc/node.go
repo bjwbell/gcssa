@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"go/types"
 
-	"ssa"
+	"github.com/bjwbell/ssa"
 )
 
 type Symbol struct {

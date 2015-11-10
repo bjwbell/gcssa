@@ -23,7 +23,6 @@ func Tempname(nn *Node, t *Type) {
 	n.Type = t
 	n.Class = PAUTO
 	n.Addable = true
-	n.Ullman = 1
 	//n.Esc = EscNever
 	n.Name.Curfn = Curfn
 	Curfn.Func.Dcl = list(Curfn.Func.Dcl, n)

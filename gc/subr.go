@@ -248,7 +248,8 @@ func setlineno(n *Node) int32 {
 }
 
 func Lookup(name string) *Sym {
-	return localpkg.Lookup(name)
+	return nil
+	//return localpkg.Lookup(name)
 }
 
 func Lookupf(format string, a ...interface{}) *Sym {
@@ -256,98 +257,11 @@ func Lookupf(format string, a ...interface{}) *Sym {
 }
 
 func LookupBytes(name []byte) *Sym {
-	return localpkg.LookupBytes(name)
+	return nil
+	//return localpkg.LookupBytes(name)
 }
 
 var initSyms []*Sym
-
-var nopkg = &Pkg{
-	Syms: make(map[string]*Sym),
-}
-
-func (pkg *Pkg) Lookup(name string) *Sym {
-	return nil
-	/*if pkg == nil {
-		pkg = nopkg
-	}
-	if s := pkg.Syms[name]; s != nil {
-		return s
-	}
-
-	s := &Sym{
-		Name:    name,
-		Pkg:     pkg,
-		Lexical: LNAME,
-	}
-	if name == "init" {
-		initSyms = append(initSyms, s)
-	}
-	pkg.Syms[name] = s
-	return s*/
-}
-
-func (pkg *Pkg) LookupBytes(name []byte) *Sym {
-	return nil
-	/*if pkg == nil {
-		pkg = nopkg
-	}
-	if s := pkg.Syms[string(name)]; s != nil {
-		return s
-	}
-	str := internString(name)
-	return pkg.Lookup(str)*/
-}
-
-func Pkglookup(name string, pkg *Pkg) *Sym {
-	return pkg.Lookup(name)
-}
-
-func restrictlookup(name string, pkg *Pkg) *Sym {
-	return nil
-	/*if !exportname(name) && pkg != localpkg {
-		Yyerror("cannot refer to unexported name %s.%s", pkg.Name, name)
-	}
-	return Pkglookup(name, pkg)*/
-}
-
-// find all the exported symbols in package opkg
-// and make them available in the current package
-func importdot(opkg *Pkg, pack *Node) {
-	return
-	/*var s1 *Sym
-	var pkgerror string
-
-	n := 0
-	for _, s := range opkg.Syms {
-		if s.Def == nil {
-			continue
-		}
-		if !exportname(s.Name) || strings.ContainsRune(s.Name, 0xb7) { // 0xb7 = center dot
-			continue
-		}
-		s1 = Lookup(s.Name)
-		if s1.Def != nil {
-			pkgerror = fmt.Sprintf("during import %q", opkg.Path)
-			redeclare(s1, pkgerror)
-			continue
-		}
-
-		s1.Def = s.Def
-		s1.Block = s.Block
-		if s1.Def.Name == nil {
-			Dump("s1def", s1.Def)
-			Fatalf("missing Name")
-		}
-		s1.Def.Name.Pack = pack
-		s1.Origpkg = opkg
-		n++
-	}
-
-	if n == 0 {
-		// can't possibly be used - there were no symbols
-		yyerrorl(int(pack.Lineno), "imported and not used: %q", opkg.Path)
-	}*/
-}
 
 func Nod(op int, nleft *Node, nright *Node) *Node {
 	return nil
@@ -421,7 +335,6 @@ func Nodintconst(v int64) *Node {
 	c.SetVal(Val{new(Mpint)})
 	Mpmovecfix(c.Val().U.(*Mpint), v)
 	c.Type = Types[TIDEAL]
-	ullmancalc(c)
 	return c*/
 }
 
@@ -432,7 +345,6 @@ func nodfltconst(v *Mpflt) *Node {
 	c.SetVal(Val{newMpflt()})
 	mpmovefltflt(c.Val().U.(*Mpflt), v)
 	c.Type = Types[TIDEAL]
-	ullmancalc(c)
 	return c*/
 }
 
@@ -441,7 +353,6 @@ func Nodconst(n *Node, t *Type, v int64) {
 	/**n = Node{}
 	n.Op = OLITERAL
 	n.Addable = true
-	ullmancalc(n)
 	n.SetVal(Val{new(Mpint)})
 	Mpmovecfix(n.Val().U.(*Mpint), v)
 	n.Type = t
@@ -490,59 +401,6 @@ func aindex(b *Node, t *Type) *Type {
 	r.Type = t
 	r.Bound = bound
 	return r*/
-}
-
-// treecopy recursively copies n, with the exception of
-// ONAME, OLITERAL, OTYPE, and non-iota ONONAME leaves.
-// Copies of iota ONONAME nodes are assigned the current
-// value of iota_. If lineno != 0, it sets the line number
-// of newly allocated nodes to lineno.
-func treecopy(n *Node, lineno int32) *Node {
-	return nil
-	/*if n == nil {
-		return nil
-	}
-
-	var m *Node
-	switch n.Op {
-	default:
-		m = Nod(OXXX, nil, nil)
-		*m = *n
-		m.Orig = m
-		m.Left = treecopy(n.Left, lineno)
-		m.Right = treecopy(n.Right, lineno)
-		m.List = listtreecopy(n.List, lineno)
-		if lineno != 0 {
-			m.Lineno = lineno
-		}
-		if m.Name != nil && n.Op != ODCLFIELD {
-			Dump("treecopy", n)
-			Fatalf("treecopy Name")
-		}
-
-	case ONONAME:
-		if n.Sym == Lookup("iota") {
-			// Not sure yet whether this is the real iota,
-			// but make a copy of the Node* just in case,
-			// so that all the copies of this const definition
-			// don't have the same iota value.
-			m = Nod(OXXX, nil, nil)
-			*m = *n
-			if lineno != 0 {
-				m.Lineno = lineno
-			}
-			m.Name = new(Name)
-			*m.Name = *n.Name
-			m.Name.Iota = iota_
-			break
-		}
-		fallthrough
-
-	case ONAME, OLITERAL, OTYPE:
-		m = n
-	}
-
-	return m*/
 }
 
 func isnil(n *Node) bool {
@@ -978,66 +836,6 @@ func Ptrto(t *Type) *Type {
 }
 
 /*
- * calculate sethi/ullman number
- * roughly how many registers needed to
- * compile a node. used to compile the
- * hardest side first to minimize registers.
- */
-func ullmancalc(n *Node) {
-	/*if n == nil {
-			return
-		}
-
-		var ul int
-		var ur int
-		if n.Ninit != nil {
-			ul = UINF
-			goto out
-		}
-
-		switch n.Op {
-		case OREGISTER, OLITERAL, ONAME:
-			ul = 1
-			if n.Class == PPARAMREF || (n.Class&PHEAP != 0) {
-				ul++
-			}
-			goto out
-
-		case OCALL, OCALLFUNC, OCALLMETH, OCALLINTER, OASWB:
-			ul = UINF
-			goto out
-
-			// hard with race detector
-		case OANDAND, OOROR:
-			if flag_race != 0 {
-				ul = UINF
-				goto out
-			}
-		}
-
-		ul = 1
-		if n.Left != nil {
-			ul = int(n.Left.Ullman)
-		}
-		ur = 1
-		if n.Right != nil {
-			ur = int(n.Right.Ullman)
-		}
-		if ul == ur {
-			ul += 1
-		}
-		if ur > ul {
-			ul = ur
-		}
-
-	out:
-		if ul > 200 {
-			ul = 200 // clamp to uchar with room to grow
-		}
-		n.Ullman = uint8(ul)*/
-}
-
-/*
  * iterator to walk a structure declaration
  */
 
@@ -1182,14 +980,6 @@ func Simsimtype(t *Type) int {
 	return et
 }
 
-func listtreecopy(l *NodeList, lineno int32) *NodeList {
-	var out *NodeList
-	for ; l != nil; l = l.Next {
-		out = list(out, treecopy(l.N, lineno))
-	}
-	return out
-}
-
 func liststmt(l *NodeList) *Node {
 	/*n := Nod(OBLOCK, nil, nil)
 	n.List = l
@@ -1321,23 +1111,6 @@ func pathtoprefix(s string) string {
 	return s
 }
 
-var pkgMap = make(map[string]*Pkg)
-var pkgs []*Pkg
-
-func mkpkg(path string) *Pkg {
-	if p := pkgMap[path]; p != nil {
-		return p
-	}
-
-	p := new(Pkg)
-	p.Path = path
-	p.Prefix = pathtoprefix(path)
-	p.Syms = make(map[string]*Sym)
-	pkgMap[path] = p
-	pkgs = append(pkgs, p)
-	return p
-}
-
 func addinit(np **Node, init *NodeList) {
 	if init == nil {
 		return
@@ -1356,7 +1129,6 @@ func addinit(np **Node, init *NodeList) {
 	}
 
 	//n.Ninit = concat(init, n.Ninit)
-	//n.Ullman = UINF
 }
 
 var reservedimports = []string{

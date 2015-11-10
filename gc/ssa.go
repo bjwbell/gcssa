@@ -13,7 +13,7 @@ import (
 
 	"github.com/bjwbell/cmd/obj"
 
-	"ssa"
+	"github.com/bjwbell/ssa"
 )
 
 // Smallest possible faulting page at address zero.

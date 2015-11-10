@@ -119,34 +119,19 @@ func (v Val) Ctype() int {
 	}
 }
 
-type Pkg struct {
-	Name     string // package name
-	Path     string // string literal used in import statement
-	Pathsym  *Sym
-	Prefix   string // escaped path for use in symbol table
-	Imported bool   // export data of this package was parsed
-	Exported bool   // import line written in export data
-	Direct   bool   // imported directly
-	Safe     bool   // whether the package is marked as safe
-	Syms     map[string]*Sym
-}
-
 type Sym struct {
-	Lexical   uint16
-	Flags     uint8
-	Link      *Sym
-	Uniqgen   uint32
-	Importdef *Pkg   // where imported definition was found
-	Linkname  string // link name
+	Lexical  uint16
+	Flags    uint8
+	Link     *Sym
+	Uniqgen  uint32
+	Linkname string // link name
 
 	// saved and restored by dcopy
-	Pkg  *Pkg
 	Name string // variable name
 	Def  *Node  // definition: ONAME OTYPE OPACK or OLITERAL
 	//Label      *Label // corresponding label (ephemeral)
 	Block      int32 // blocknumber to catch redeclaration
 	Lastlineno int32 // last declaration for diagnostic
-	Origpkg    *Pkg  // original package for . import
 	//Lsym       *obj.LSym
 	Fsym *Sym // funcsym
 }
@@ -389,32 +374,6 @@ var Debug_checknil int
 var Debug_typeassert int
 
 var importmyname *Sym // my name for package
-
-var localpkg *Pkg // package being compiled
-
-var importpkg *Pkg // package being imported
-
-var structpkg *Pkg // package that declared struct, during import
-
-var builtinpkg *Pkg // fake package for builtins
-
-var gostringpkg *Pkg // fake pkg for Go strings
-
-var itabpkg *Pkg // fake pkg for itab cache
-
-var Runtimepkg *Pkg // package runtime
-
-var racepkg *Pkg // package runtime/race
-
-var typepkg *Pkg // fake package for runtime type info (headers)
-
-var typelinkpkg *Pkg // fake package for runtime type info (data)
-
-var weaktypepkg *Pkg // weak references to runtime type info
-
-var unsafepkg *Pkg // package unsafe
-
-var trackpkg *Pkg // fake package for field tracking
 
 var Tptr int // either TPTR32 or TPTR64
 

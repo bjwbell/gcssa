@@ -2,7 +2,8 @@ package gc
 
 import (
 	"go/types"
-	"ssa"
+
+	"github.com/bjwbell/ssa"
 )
 
 type Type struct {

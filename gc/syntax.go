@@ -49,7 +49,6 @@ func (n *Node) String() string {
 // Name holds Node fields used only by named nodes (ONAME, OPACK, some OLITERAL).
 type Name struct {
 	Pack      *Node // real package for import . names
-	Pkg       *Pkg  // pkg for OPACK nodes
 	Heapaddr  *Node // temp holding heap address of param
 	Inlvar    *Node // ONAME substitute while inlining
 	Defn      *Node // initializing assignment

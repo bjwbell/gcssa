@@ -1,3 +1,0 @@
-[submodule "ssa"]
-	path = vendor/ssa
-	url = https://github.com/bjwbell/ssa
