@@ -94,5 +94,9 @@ func main() {
 		return
 	}
 	ss, ok := gc.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
-	fmt.Printf("ssa, ok: %v, %v\n", ss, ok)
+	if !ok || ss == nil {
+		fmt.Println("Error building SSA form")
+	} else {
+		fmt.Println("ssa:\n", ss)
+	}
 }

@@ -539,7 +539,7 @@ func assignop(src *Type, dst *Type, why *string) int {
 	if src == dst {
 		return OCONVNOP
 	}
-	if src == nil || dst == nil || src.Etype() == TFORW || dst.Etype() == TFORW {
+	if src == nil || dst == nil {
 		return 0
 	}
 

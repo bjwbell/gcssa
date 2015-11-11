@@ -212,7 +212,6 @@ const (
 	TCHAN
 	TMAP
 	TINTER
-	TFORW
 	TFIELD
 	TANY
 	TSTRING
@@ -399,7 +398,6 @@ var Simtype [NTYPE]uint8
 
 var (
 	Isptr     [NTYPE]bool
-	isforw    [NTYPE]bool
 	Isint     [NTYPE]bool
 	Isfloat   [NTYPE]bool
 	Iscomplex [NTYPE]bool

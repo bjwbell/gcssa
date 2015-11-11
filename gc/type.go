@@ -11,65 +11,142 @@ type Type struct {
 	types.Type
 }
 
+var typeToEtype = map[types.BasicKind]int64{
+	types.Bool:          TBOOL,
+	types.Int:           TINT,
+	types.Int8:          TINT8,
+	types.Int16:         TINT16,
+	types.Int32:         TINT32,
+	types.Int64:         TINT64,
+	types.Uint:          TUINT,
+	types.Uint8:         TUINT8,
+	types.Uint16:        TUINT16,
+	types.Uint32:        TUINT32,
+	types.Uint64:        TUINT64,
+	types.Uintptr:       TUINTPTR,
+	types.Float32:       TFLOAT32,
+	types.Float64:       TFLOAT64,
+	types.Complex64:     TCOMPLEX64,
+	types.Complex128:    TCOMPLEX128,
+	types.String:        TSTRING,
+	types.UnsafePointer: TUNSAFEPTR,
+
+	// types for untyped values
+	/*types.UntypedBool:    CTBOOL,
+	types.UntypedInt:     CTINT,
+	types.UntypedRune:    CTRUNE,
+	types.UntypedFloat:   CTFLT,
+	types.UntypedComplex: CTCPLX,
+	types.UntypedString:  CTSTR,
+	types.UntypedNil:     CTNIL*/}
+
+// Basic returns *types.Basic if t.Type is *types.Basic
+// else nil is returned.
+func (t *Type) Basic() *types.Basic {
+	if basic, ok := t.Type.(*types.Basic); ok {
+		return basic
+	}
+	return nil
+}
+
+// Struct returns *types.Struct if t.Type is *types.Struct
+// else nil is returned.
+func (t *Type) Struct() *types.Struct {
+	if s, ok := t.Type.(*types.Struct); ok {
+		return s
+	}
+	return nil
+}
+
+// Array returns *types.Array if t.Type is *types.Array
+// else nil is returned.
+func (t *Type) Array() *types.Array {
+	if array, ok := t.Type.(*types.Array); ok {
+		return array
+	}
+	return nil
+}
+
+// IsBasicInfoFlag returns true if t.Type is types.Basic and
+// the BasicInfo for t.Type matches flags, otherwise false is returned
+func (t *Type) IsBasicInfoFlag(flag types.BasicInfo) bool {
+	if basic := t.Basic(); basic != nil {
+		info := basic.Info()
+		return info&flag == 1
+	} else {
+		return false
+	}
+}
+
+func (t *Type) IsBasic() bool {
+	return t.Basic() != nil
+}
+
 func (t *Type) IsBoolean() bool {
-	return t.Etype() == TBOOL
+	return t.IsBasicInfoFlag(types.IsBoolean)
 }
 
 func (t *Type) IsInteger() bool {
-	switch t.Etype() {
-	case TINT8, TUINT8, TINT16, TUINT16, TINT32, TUINT32, TINT64, TUINT64, TINT, TUINT, TUINTPTR:
-		return true
-	}
-	return false
+	return t.IsBasicInfoFlag(types.IsInteger)
 }
 
 func (t *Type) IsSigned() bool {
-	switch t.Etype() {
-	case TINT8, TINT16, TINT32, TINT64, TINT:
+	return (t.IsBasic() && !t.IsBasicInfoFlag(types.IsUnsigned))
+}
+
+func (t *Type) IsFloat() bool {
+	return t.IsBasicInfoFlag(types.IsFloat)
+}
+
+func (t *Type) IsComplex() bool {
+	return t.IsBasicInfoFlag(types.IsComplex)
+}
+
+func (t *Type) IsPtr() bool {
+	// behavior should match:
+	// Etype == TPTR32 || Etype == TPTR64 || Etype == TUNSAFEPTR ||
+	// Etype == TMAP || Etype == TCHAN || Etype == TFUNC
+	if basic := t.Basic(); basic != nil {
+		return basic.Kind() == types.UnsafePointer
+	}
+	switch t.Type.(type) {
+	case *types.Pointer, *types.Map, *types.Signature, *types.Chan:
 		return true
 	}
 	return false
 }
 
-func (t *Type) IsFloat() bool {
-	return t.Etype() == TFLOAT32 || t.Etype() == TFLOAT64
-}
-
-func (t *Type) IsComplex() bool {
-	return t.Etype() == TCOMPLEX64 || t.Etype() == TCOMPLEX128
-}
-
-func (t *Type) IsPtr() bool {
-	return t.Etype() == TPTR32 || t.Etype() == TPTR64 || t.Etype() == TUNSAFEPTR ||
-		t.Etype() == TMAP || t.Etype() == TCHAN || t.Etype() == TFUNC
-}
-
 func (t *Type) IsString() bool {
-	return t.Etype() == TSTRING
+	return t.IsBasicInfoFlag(types.IsString)
 }
 
 func (t *Type) IsMap() bool {
-	return t.Etype() == TMAP
+	_, ok := t.Type.(*types.Map)
+	return ok
 }
 
 func (t *Type) IsChan() bool {
-	return t.Etype() == TCHAN
+	_, ok := t.Type.(*types.Map)
+	return ok
 }
 
 func (t *Type) IsSlice() bool {
-	return t.Etype() == TARRAY && t.Bound() < 0
+	_, ok := t.Type.(*types.Slice)
+	return ok
 }
 
 func (t *Type) IsArray() bool {
-	return t.Etype() == TARRAY && t.Bound() >= 0
+	_, ok := t.Type.(*types.Array)
+	return ok
 }
 
 func (t *Type) IsStruct() bool {
-	return t.Etype() == TSTRUCT
+	return t.Struct() != nil
 }
 
 func (t *Type) IsInterface() bool {
-	return types.IsInterface(t.Type)
+	_, ok := t.Type.(*types.Interface)
+	return ok
 }
 
 func (t *Type) Size() int64 {
@@ -86,22 +163,93 @@ func (t *Type) IsMemory() bool { return false } // special ssa-package-only type
 func (t *Type) IsFlags() bool  { return false }
 func (t *Type) IsVoid() bool   { return false }
 
-func (t *Type) Elem() ssa.Type  { return nil } // given []T or *T or [n]T, return T
-func (t *Type) PtrTo() ssa.Type { return nil } // given T, return *T
+// Elem, if t.Type is []T or *T or [n]T, return T, otherwise return nil
+func (t *Type) Elem() ssa.Type {
+	if t.IsSlice() || t.IsPtr() || t.IsArray() {
+		return &Type{t.n, t.Underlying()}
+	} else {
+		return nil
+	}
+}
 
-func (t *Type) NumFields() int64           { return 0 }   // # of fields of a struct
-func (t *Type) FieldType(i int64) ssa.Type { return nil } // type of ith field of the struct
-func (t *Type) FieldOff(i int64) int64     { return 0 }   // offset of ith field of the struct
+// PtrTo, given T, returns *T
+func (t *Type) PtrTo() ssa.Type {
+	return &Type{t.n, types.NewPointer(t.Type)}
+}
 
-func (t *Type) NumElem() int64 { return 0 } // # of elements of an array
+// NumFields returns the # of fields of a struct, panics if t is not a types.Struct
+func (t *Type) NumFields() int64 {
+	if !t.IsStruct() {
+		panic("NumFields can only be called with Struct's")
+	}
+	s := t.Type.(*types.Struct)
+	return int64(s.NumFields())
+}
 
-func (t *Type) String() string       { return "<Type.String()>" }
-func (t *Type) SimpleString() string { return "<Type.String()>" } // a coarser generic description of T, e.g. T's underlying type
-func (t *Type) Equal(ssa.Type) bool  { return false }
+// FieldTypes returns the type of ith field of the struct and panics on error
+func (t *Type) FieldType(i int64) ssa.Type {
+	if s := t.Struct(); s == nil {
+		panic("FieldType can only be called with Struct's")
+	} else {
+		if int64(s.NumFields()) <= i {
+			panic("Invalid field #")
+		}
+		// TODO: figure out what node i.e. t.n to use
+		field := Type{nil, s.Field(int(i)).Type()}
+		return &field
+	}
+}
 
-// TARRAY, negative if slice
+// FieldOff returns the offset of ith field of the struct and panics on error
+func (t *Type) FieldOff(i int64) int64 {
+	if s := t.Struct(); s == nil {
+		panic("FieldOff can only be called with Struct's")
+	} else {
+		if int64(s.NumFields()) <= i {
+			panic("Invalid field #")
+		}
+		var stdSizes types.StdSizes
+		field := s.Field(int(i))
+		offsets := stdSizes.Offsetsof([]*types.Var{field})
+		return offsets[0]
+	}
+}
+
+// NumElem returns the # of elements of an array and panics on error
+func (t *Type) NumElem() int64 {
+	if array := t.Array(); array == nil {
+		panic("NumElem can only be called with types.Array")
+	} else {
+		return array.Len()
+	}
+}
+
+func (t *Type) String() string {
+	return t.Type.String()
+}
+
+// SimpleString is a coarser generic description of T, e.g. T's underlying type
+func (t *Type) SimpleString() string {
+	return t.Type.Underlying().String()
+}
+
+func (t *Type) Equal(v ssa.Type) bool {
+	if v2, ok := v.(*Type); ok {
+		return types.Identical(t, v2)
+	}
+	return false
+}
+
+// Bound returns the num elements if t is an array, if t is a slice it returns -1,
+// and if t is neither an array or slice it panics
 func (t *Type) Bound() int64 {
-	return -1
+	if t.Array() != nil {
+		return t.NumElem()
+	} else if t.IsSlice() {
+		return -1
+	} else {
+		panic("Bound called with invalid type")
+	}
 }
 
 func (t *Type) Width() int64 {
@@ -109,9 +257,54 @@ func (t *Type) Width() int64 {
 }
 
 // Etype is the concrete type, e.g. TBOOL, TINT64, TFIELD, etc
+
 func (t *Type) Etype() int64 {
-	// TODO
-	return 0
+	if basic := t.Basic(); basic != nil {
+		if etype, ok := typeToEtype[basic.Kind()]; ok {
+			return etype
+		} else {
+			panic("unknown basic type")
+		}
+	}
+	switch t.Type.(type) {
+	case *types.Array:
+		return TARRAY
+	case *types.Chan:
+		return TCHAN
+	case *types.Interface:
+		return TINTER
+	case *types.Map:
+		return TMAP
+	case *types.Named:
+		panic("unimplemented")
+	case *types.Pointer:
+		// HACK!
+		// hardcoded to 64-bit pointers
+		return TPTR64
+	case *types.Signature:
+		return TFUNC
+	case *types.Slice:
+		panic("unimplemented")
+	case *types.Struct:
+		return TSTRUCT
+	case *types.Tuple:
+		panic("unimplemented")
+
+	}
+	// TODO figure out what should be done for types.Var
+	//case *types.Var:
+	//	return TFIELD
+
+	panic("unimplemented")
+}
+
+func typ(etype int) *Type {
+	for t, et := range typeToEtype {
+		if et == int64(etype) {
+			return &Type{nil, types.Typ[t]}
+		}
+	}
+	return nil
 }
 
 func typeinit() {
@@ -131,6 +324,51 @@ func typeinit() {
 	for i := TINT8; i <= TUINT64; i++ {
 		Isint[i] = true
 	}
+
+	Types[TINT8] = typ(TINT8)
+	Types[TUINT8] = typ(TUINT8)
+	Types[TINT16] = typ(TINT16)
+	Types[TUINT16] = typ(TUINT16)
+	Types[TINT32] = typ(TINT32)
+	Types[TUINT32] = typ(TUINT32)
+	Types[TINT64] = typ(TINT64)
+	Types[TUINT64] = typ(TUINT64)
+	Types[TINT] = typ(TINT)
+	Types[TUINT] = typ(TUINT)
+	Types[TUINTPTR] = typ(TUINTPTR)
+
+	Types[TCOMPLEX64] = typ(TCOMPLEX64)
+	Types[TCOMPLEX128] = typ(TCOMPLEX128)
+
+	Types[TFLOAT32] = typ(TFLOAT32)
+	Types[TFLOAT64] = typ(TFLOAT64)
+
+	Types[TBOOL] = typ(TBOOL)
+
+	Types[TPTR32] = typ(TPTR32)
+	Types[TPTR64] = typ(TPTR64)
+
+	Types[TFUNC] = typ(TFUNC)
+	Types[TARRAY] = typ(TARRAY)
+	Types[TSTRUCT] = typ(TSTRUCT)
+	Types[TCHAN] = typ(TCHAN)
+	Types[TMAP] = typ(TMAP)
+	Types[TINTER] = typ(TINTER)
+	Types[TFIELD] = typ(TFIELD)
+	Types[TANY] = typ(TANY)
+	Types[TSTRING] = typ(TSTRING)
+	Types[TUNSAFEPTR] = typ(TUNSAFEPTR)
+
+	// pseudo-types for literals
+	Types[TIDEAL] = typ(TIDEAL)
+	Types[TNIL] = typ(TNIL)
+	Types[TBLANK] = typ(TBLANK)
+
+	// pseudo-type for frame layout
+	Types[TFUNCARGS] = typ(TFUNCARGS)
+	Types[TCHANARGS] = typ(TCHANARGS)
+	Types[TINTERMETH] = typ(TINTERMETH)
+
 	Isint[TINT] = true
 	Isint[TUINT] = true
 	Isint[TUINTPTR] = true
@@ -143,8 +381,6 @@ func typeinit() {
 
 	Isptr[TPTR32] = true
 	Isptr[TPTR64] = true
-
-	isforw[TFORW] = true
 
 	Issigned[TINT] = true
 	Issigned[TINT8] = true

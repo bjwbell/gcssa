@@ -87,7 +87,6 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 	if signature.Results().Len() > 1 {
 		fmt.Println("Multiple return values not supported")
 	}
-	name := fnType.Name()
 
 	var s state
 	s.pushLine(linenum(ftok, fn.Pos()))
@@ -99,7 +98,7 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 	s.config = ssa.NewConfig(Thearch.Thestring, &e, &link)
 	s.ctx = ctx
 	s.f = s.config.NewFunc()
-	s.f.Name = name
+	s.f.Name = fnType.Name()
 	s.fnInfo = fnInfo
 	s.fnType = fnType
 	// We construct SSA using an algorithm similar to
@@ -143,7 +142,6 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 
 	// Convert the AST-based IR to the SSA-based IR
 	s.stmtList(fn.Body.List)
-
 	// fallthrough to exit
 	/*if s.curBlock != nil {
 		s.stmtList(s.exitCode)
@@ -186,7 +184,7 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 	// Main call to ssa package to compile function
 	//ssa.Compile(s.f)
 
-	return s.f, false
+	return s.f, true
 }
 
 type state struct {
