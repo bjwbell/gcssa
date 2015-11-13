@@ -113,8 +113,10 @@ type Func struct {
 }
 
 // Node ops.
+type NodeOp uint8
+
 const (
-	OXXX = iota
+	OXXX NodeOp = iota
 
 	// names
 	ONAME    // var, const or func name

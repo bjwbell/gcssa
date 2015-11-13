@@ -190,7 +190,9 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 type state struct {
 	// configuration (arch) information
 	config *ssa.Config
-	ctx    Ctx
+	// context includes *token.File and *types.File
+	ctx Ctx
+
 	// function we're building
 	f      *ssa.Func
 	fnInfo *types.Info
@@ -450,7 +452,7 @@ func (s *state) stmtList(stmtList []ast.Stmt) {
 	}
 }
 
-// ssaStmt converts the statement n to SSA and adds it to s.
+// ssaStmt converts the statement stmt to SSA and adds it to s.
 func (s *state) stmt(stmt ast.Stmt) {
 	node := stmt.(ast.Node)
 	n := &Node{Node: node, Ctx: s.ctx}
@@ -751,7 +753,7 @@ func (s *state) stmt(stmt ast.Stmt) {
 }
 
 type opAndType struct {
-	op    uint8
+	op    NodeOp
 	etype uint8
 }
 
@@ -989,7 +991,7 @@ func (s *state) concreteEtype(t *Type) uint8 {
 	}*/
 }
 
-func (s *state) ssaOp(op uint8, t *Type) ssa.Op {
+func (s *state) ssaOp(op NodeOp, t *Type) ssa.Op {
 	/*etype := s.concreteEtype(t)
 	x, ok := opToSSA[opAndType{op, etype}]
 	if !ok {
@@ -1008,7 +1010,7 @@ func floatForComplex(t *Type) *Type {
 }
 
 type opAndTwoTypes struct {
-	op     uint8
+	op     NodeOp
 	etype1 uint8
 	etype2 uint8
 }

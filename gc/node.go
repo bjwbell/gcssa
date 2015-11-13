@@ -61,12 +61,12 @@ func (n *Node) Val() Val {
 	return Val{}
 }
 
-func (n *Node) Op() int {
+func (n *Node) Op() NodeOp {
 	return 0
 }
 
 // OREGISTER, OINDREG
-func (n *Node) Reg() int16 {
+func (n *Node) Reg() NodeOp {
 	return OREGISTER
 }
 
@@ -109,7 +109,7 @@ func (n *Node) Right() (right *Node) {
 // Bounded returns true if bounds checks are unnecessary.
 func (n *Node) Bounded() bool {
 	// TODO, bounds checks are necessary for slices
-	return true
+	return n.Type().IsSlice()
 }
 
 // Addrtaken, address taken, even if not moved to heap
