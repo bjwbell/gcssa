@@ -1,7 +1,9 @@
 package gc
 
 import (
+	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 
 	"github.com/bjwbell/ssa"
@@ -24,6 +26,10 @@ func (obj *IdentDef) Heapaddr() *Node {
 
 func (sym *Symbol) String() string {
 	return "<Sym.String()>"
+}
+
+func (n *Node) Lineno() int32 {
+	return int32(n.Ctx.file.Line(n.Pos()))
 }
 
 func (n *Node) Symbol() *Symbol {
@@ -62,7 +68,115 @@ func (n *Node) Val() Val {
 }
 
 func (n *Node) Op() NodeOp {
-	return 0
+	switch node := n.Node.(type) {
+	case *ast.ArrayType:
+		return OTARRAY
+	case *ast.AssignStmt:
+		return OAS
+	case *ast.BasicLit:
+		return OLITERAL
+	case *ast.BinaryExpr:
+		switch node.Op {
+		case token.ADD:
+			return OADD
+		case token.SUB:
+			return OSUB
+		case token.MUL:
+			return OMUL
+		case token.QUO:
+			return ODIV
+		case token.REM:
+			return OMOD
+		case token.AND:
+			return OAND
+		case token.OR:
+			return OOR
+		case token.XOR:
+			return OXOR
+		case token.SHL:
+			return OLSH
+		case token.SHR:
+			return ORSH
+		case token.AND_NOT:
+			return OANDNOT
+		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN, token.AND_NOT_ASSIGN:
+			return OASOP
+		case token.LAND:
+			return OANDAND
+		case token.LOR:
+			return OOROR
+		case token.INC:
+			return OINC
+		case token.DEC:
+			return ODEC
+		case token.EQL:
+			return OEQ
+		case token.LSS:
+			return OLT
+		case token.GTR:
+			return OGT
+		case token.ASSIGN:
+			return OAS
+		case token.NEQ:
+			return ONE
+		case token.LEQ:
+			return OLE
+		case token.GEQ:
+			return OGE
+		case token.DEFINE:
+			return OAS
+		default:
+			panic("Unknown op for binary expression")
+
+		}
+	case *ast.BlockStmt:
+		return OBLOCK
+	case *ast.BranchStmt:
+		switch node.Tok {
+		case token.BREAK:
+			return OBREAK
+		case token.CONTINUE:
+			return OCONTINUE
+		case token.GOTO:
+			return OGOTO
+		case token.FALLTHROUGH:
+			return OFALL
+		default:
+			panic("Unknown token for branch statement")
+		}
+	case *ast.CallExpr:
+		return OCALLFUNC
+	case *ast.CaseClause:
+		return OCASE
+	case *ast.ChanType:
+		panic("channels are not supported")
+	case *ast.CommClause:
+		panic("select statements are not supported")
+	case *ast.CompositeLit:
+		panic("Composite literals are unimplemented")
+	case *ast.DeclStmt:
+		dcl := node.Decl.(*ast.GenDecl)
+		if dcl.Tok == token.VAR {
+			return ODCL
+		} else {
+			panic("unimplemented")
+		}
+
+	case *ast.DeferStmt:
+		panic("defer is unsupported")
+	case *ast.Ellipsis:
+		panic("unimplemented")
+	case *ast.EmptyStmt:
+		return OEMPTY
+	case *ast.ExprStmt:
+		panic("unimplemented")
+	case *ast.ReturnStmt:
+		return ORETURN
+	default:
+		fmt.Printf("node: %#v\n", node)
+		panic("unimplemented")
+	}
+
 }
 
 // OREGISTER, OINDREG
@@ -104,6 +218,29 @@ func (n *Node) Left() (left *Node) {
 func (n *Node) Right() (right *Node) {
 	_, right = n.BinaryExpr()
 	return
+}
+
+func (n *Node) LeftRight() (left, right *Node) {
+	switch node := n.Node.(type) {
+	case *ast.BinaryExpr:
+		return n.BinaryExpr()
+	case *ast.DeclStmt:
+		dcl := node.Decl.(*ast.GenDecl)
+		if dcl.Tok == token.VAR {
+			if len(dcl.Specs) != 1 {
+				panic("unimplemented")
+			}
+			valueSpec := dcl.Specs[0].(*ast.ValueSpec)
+			if len(valueSpec.Names) != 1 {
+				panic("unimplemented")
+			}
+			// TODO
+			return nil, nil
+		} else {
+			panic("unimplemented")
+		}
+	}
+	return nil, nil
 }
 
 // Bounded returns true if bounds checks are unnecessary.

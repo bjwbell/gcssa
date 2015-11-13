@@ -305,7 +305,7 @@ func (s *state) endBlock() *ssa.Block {
 	s.defvars[b.ID] = s.vars
 	s.curBlock = nil
 	s.vars = nil
-	//b.Line = s.peekLine()
+	b.Line = s.peekLine()
 	return b
 }
 
@@ -456,8 +456,8 @@ func (s *state) stmtList(stmtList []ast.Stmt) {
 func (s *state) stmt(stmt ast.Stmt) {
 	node := stmt.(ast.Node)
 	n := &Node{Node: node, Ctx: s.ctx}
-	//s.pushLine(n.Lineno())
-	//defer s.popLine()
+	s.pushLine(n.Lineno())
+	defer s.popLine()
 
 	// If s.curBlock is nil, then we're about to generate dead code.
 	// We can't just short-circuit here, though,
@@ -489,9 +489,11 @@ func (s *state) stmt(stmt ast.Stmt) {
 	case OAS2DOTTYPE:
 		panic(".(type) expressions unsupported")
 	case ODCL:
-		if n.Left().Class()&PHEAP == 0 {
+		// TODO
+		/*if n.Left().Class()&PHEAP == 0 {
 			return
-		}
+		}*/
+		return
 	case OLABEL:
 		sym := n.Left().Symbol()
 
@@ -596,7 +598,7 @@ func (s *state) stmt(stmt ast.Stmt) {
 		s.startBlock(bEnd)
 
 	case ORETURN:
-		panic("returning lists is unsupported")
+		// TODO
 		/*s.stmtList(n.List)
 		//s.stmtList(s.exitCode)
 		m := s.mem()
