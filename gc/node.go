@@ -178,6 +178,8 @@ func (n *Node) Op() NodeOp {
 		panic("unimplemented")
 	case *ast.ReturnStmt:
 		return ORETURN
+	case *ast.IfStmt:
+		return OIF
 	default:
 		fmt.Printf("node: %#v\n", node)
 		panic("unimplemented")

@@ -171,8 +171,8 @@ func Warnl(line int, fmt_ string, args ...interface{}) {
 
 func Fatalf(fmt_ string, args ...interface{}) {
 	//Flusherrors()
-
-	fmt.Printf("internal compiler error: ")
+	msg := "internal compiler error: " + fmt_
+	fmt.Printf(msg, args)
 	fmt.Printf("\n")
 
 	// If this is a released compiler version, ask for a bug report.

@@ -529,11 +529,19 @@ func (s *state) stmt(stmt ast.Stmt) {
 		bEnd := s.f.NewBlock(ssa.BlockPlain)
 
 		var bElse *ssa.Block
+
+		if ifStmt.Init != nil {
+			s.stmt(ifStmt.Init)
+		}
+
 		if ifStmt.Else != nil {
 			bElse = s.f.NewBlock(ssa.BlockPlain)
 			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bElse, n.Likely())
 		} else {
 			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bEnd, n.Likely())
+		}
+		if s.curBlock != nil {
+			s.endBlock()
 		}
 
 		s.startBlock(bThen)
