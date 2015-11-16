@@ -536,9 +536,9 @@ func (s *state) stmt(stmt ast.Stmt) {
 
 		if ifStmt.Else != nil {
 			bElse = s.f.NewBlock(ssa.BlockPlain)
-			s.condBranch(ifStmt.Cond, bThen, bElse, n.Likely())
+			s.condBranch(ifStmt.Cond, bThen, bElse)
 		} else {
-			s.condBranch(ifStmt.Cond, bThen, bEnd, n.Likely())
+			s.condBranch(ifStmt.Cond, bThen, bEnd)
 		}
 		if s.curBlock != nil {
 			s.endBlock()
@@ -652,7 +652,7 @@ func (s *state) stmt(stmt ast.Stmt) {
 		s.startBlock(bCond)
 
 		if fnode.Cond != nil {
-			s.condBranch(fnode.Cond, bBody, bEnd, 1)
+			s.condBranch(fnode.Cond, bBody, bEnd)
 		} else {
 			b := s.endBlock()
 			b.Kind = ssa.BlockPlain
@@ -1804,44 +1804,42 @@ func (s *state) expr(n *Node) *ssa.Value {
 // if cond is true and no if cond is false.
 // This function is intended to handle && and || better than just calling
 // s.expr(cond) and branching on the result.
-func (s *state) condBranch(cond ast.Expr, yes, no *ssa.Block, likely int8) {
-	/*if cond.Op() == OANDAND {
-		mid := s.f.NewBlock(ssa.BlockPlain)
-		s.stmtList(cond.Ninit)
-		s.condBranch(cond.Left(), mid, no, max8(likely, 0))
-		s.startBlock(mid)
-		s.condBranch(cond.Right(), yes, no, likely)
+func (s *state) condBranch(cond ast.Expr, yes, no *ssa.Block) {
+	switch e := cond.(type) {
+	case *ast.ParenExpr:
+		s.condBranch(e.X, yes, no)
 		return
-		// Note: if likely==1, then both recursive calls pass 1.
-		// If likely==-1, then we don't have enough information to decide
-		// whether the first branch is likely or not.  So we pass 0 for
-		// the likeliness of the first branch.
-		// TODO: have the frontend give us branch prediction hints for
-		// OANDAND and OOROR nodes (if it ever has such info).
+
+	case *ast.BinaryExpr:
+		switch e.Op {
+		case token.LAND:
+			ltrue := s.f.NewBlock(ssa.BlockPlain) // "cond.true"
+			s.condBranch(e.X, ltrue, no)
+			s.curBlock = ltrue
+			s.condBranch(e.Y, yes, no)
+			return
+
+		case token.LOR:
+			lfalse := s.f.NewBlock(ssa.BlockPlain) // "cond.false"
+			s.condBranch(e.X, yes, lfalse)
+			s.curBlock = lfalse
+			s.condBranch(e.Y, yes, no)
+			return
+		}
+
+	case *ast.UnaryExpr:
+		if e.Op == token.NOT {
+			s.condBranch(e.X, no, yes)
+			return
+		}
 	}
-	if cond.Op() == OOROR {
-		mid := s.f.NewBlock(ssa.BlockPlain)
-		s.stmtList(cond.Ninit)
-		s.condBranch(cond.Left(), yes, mid, min8(likely, 0))
-		s.startBlock(mid)
-		s.condBranch(cond.Right(), yes, no, likely)
-		return
-		// Note: if likely==-1, then both recursive calls pass -1.
-		// If likely==1, then we don't have enough info to decide
-		// the likelihood of the first branch.
-	}
-	if cond.Op() == ONOT {
-		s.stmtList(cond.Ninit)
-		s.condBranch(cond.Left(), no, yes, -likely)
-		return
-	}
-	c := s.expr(cond)
+	c := s.expr(NewNode(cond, s.ctx))
 	b := s.endBlock()
 	b.Kind = ssa.BlockIf
 	b.Control = c
-	b.Likely = ssa.BranchPrediction(likely) // gc and ssa both use -1/0/+1 for likeliness
+	b.Likely = 0
 	b.AddEdgeTo(yes)
-	b.AddEdgeTo(no)*/
+	b.AddEdgeTo(no)
 }
 
 func (s *state) assign(left *Node, right *ssa.Value, wb bool) {
