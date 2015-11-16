@@ -536,9 +536,9 @@ func (s *state) stmt(stmt ast.Stmt) {
 
 		if ifStmt.Else != nil {
 			bElse = s.f.NewBlock(ssa.BlockPlain)
-			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bElse, n.Likely())
+			s.condBranch(ifStmt.Cond, bThen, bElse, n.Likely())
 		} else {
-			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bEnd, n.Likely())
+			s.condBranch(ifStmt.Cond, bThen, bEnd, n.Likely())
 		}
 		if s.curBlock != nil {
 			s.endBlock()
@@ -652,7 +652,7 @@ func (s *state) stmt(stmt ast.Stmt) {
 		s.startBlock(bCond)
 
 		if fnode.Cond != nil {
-			s.condBranch(&Node{Node: fnode.Cond, Ctx: n.Ctx}, bBody, bEnd, 1)
+			s.condBranch(fnode.Cond, bBody, bEnd, 1)
 		} else {
 			b := s.endBlock()
 			b.Kind = ssa.BlockPlain
@@ -1804,7 +1804,7 @@ func (s *state) expr(n *Node) *ssa.Value {
 // if cond is true and no if cond is false.
 // This function is intended to handle && and || better than just calling
 // s.expr(cond) and branching on the result.
-func (s *state) condBranch(cond *Node, yes, no *ssa.Block, likely int8) {
+func (s *state) condBranch(cond ast.Expr, yes, no *ssa.Block, likely int8) {
 	/*if cond.Op() == OANDAND {
 		mid := s.f.NewBlock(ssa.BlockPlain)
 		s.stmtList(cond.Ninit)
