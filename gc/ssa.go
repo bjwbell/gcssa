@@ -112,12 +112,12 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 	// Allocate starting values
 	s.labels = map[string]*ssaLabel{}
 	s.labeledNodes = map[ast.Node]*ssaLabel{}
-	//s.startmem = s.entryNewValue0(ssa.OpInitMem, ssa.TypeMem)
+	s.startmem = s.entryNewValue0(ssa.OpInitMem, ssa.TypeMem)
 	s.sp = s.entryNewValue0(ssa.OpSP, Types[TUINTPTR]) // TODO: use generic pointer type (unsafe.Pointer?) instead
 	s.sb = s.entryNewValue0(ssa.OpSB, Types[TUINTPTR])
 
 	s.startBlock(s.f.Entry)
-	//s.vars[&memVar] = s.startmem
+	s.vars[&memVar] = s.startmem
 
 	s.varsyms = map[*Node]interface{}{}
 
@@ -271,8 +271,8 @@ func (s *state) Warnl(line int, msg string, args ...interface{}) { s.config.Warn
 func (s *state) Debug_checknil() bool                            { return s.config.Debug_checknil() }
 
 var (
-// dummy node for the memory variable
-//memVar = Node{Op: ONAME, Class: Pxxx, Sym: &Sym{Name: "mem"}}
+	// dummy node for the memory variable
+	memVar = Node{}
 
 // dummy nodes for temporary variables
 /*ptrVar   = Node{Op: ONAME, Class: Pxxx, Sym: &Sym{Name: "ptr"}}
@@ -562,13 +562,22 @@ func (s *state) stmt(stmt ast.Stmt) {
 		s.startBlock(bEnd)
 
 	case ORETURN:
-		// TODO
-		/*s.stmtList(n.List)
-		//s.stmtList(s.exitCode)
-		m := s.mem()
-		b := s.endBlock()
-		b.Kind = ssa.BlockRet
-		b.Control = m*/
+		retStmt := stmt.(*ast.ReturnStmt)
+		if len(retStmt.Results) > 1 {
+			panic("multiple return values unsupported")
+		} else if len(retStmt.Results) == 0 {
+			b := s.endBlock()
+			b.Kind = ssa.BlockRet
+			m := s.mem()
+			b.Control = m
+		} else { // len(retStmt.Results) == 1
+			//s.stmtList(n.List)
+			//s.stmtList(s.exitCode)
+			m := s.mem()
+			b := s.endBlock()
+			b.Kind = ssa.BlockRet
+			b.Control = m
+		}
 	case ORETJMP:
 		panic("ORETJMP unsupported")
 
