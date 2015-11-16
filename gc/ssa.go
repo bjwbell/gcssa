@@ -482,10 +482,9 @@ func (s *state) stmt(stmt ast.Stmt) {
 	case OCALLFUNC, OCALLMETH, OCALLINTER:
 		s.call(n, callNormal)
 	case ODEFER:
-		s.call(n.Left(), callDefer)
+		panic("defer unsupported")
 	case OPROC:
-		s.call(n.Left(), callGo)
-
+		panic("go PROC unsupported")
 	case OAS2DOTTYPE:
 		panic(".(type) expressions unsupported")
 	case ODCL:
@@ -495,60 +494,9 @@ func (s *state) stmt(stmt ast.Stmt) {
 		}*/
 		return
 	case OLABEL:
-		sym := n.Left().Symbol()
-
-		if isblanksym(sym) {
-			// Empty identifier is valid but useless.
-			// See issues 11589, 11593.
-			return
-		}
-
-		lab := s.label(sym)
-
-		// Associate label with its control flow node, if any
-		/*if ctl := n.Name.Defn; ctl != nil {
-			switch ctl.Op() {
-			case OFOR, OSWITCH, OSELECT:
-				//s.labeledNodes[ctl] = lab
-			}
-		}*/
-
-		if !lab.defined() {
-			lab.defNode = n
-		} else {
-			//s.Error("label %v already defined at %v", sym, Ctxt.Line(int(lab.defNode.Lineno())))
-			lab.reported = true
-		}
-		// The label might already have a target block via a goto.
-		if lab.target == nil {
-			lab.target = s.f.NewBlock(ssa.BlockPlain)
-		}
-
-		// go to that label (we pretend "label:" is preceded by "goto label")
-		b := s.endBlock()
-		b.AddEdgeTo(lab.target)
-		s.startBlock(lab.target)
-
+		panic("labels unsupported")
 	case OGOTO:
-		sym := n.Left().Symbol()
-
-		lab := s.label(sym)
-		if lab.target == nil {
-			lab.target = s.f.NewBlock(ssa.BlockPlain)
-		}
-		if !lab.used() {
-			lab.useNode = n
-		}
-
-		if lab.defined() {
-			s.checkgoto(n, lab.defNode)
-		} else {
-			//s.fwdGotos = append(s.fwdGotos, n)
-		}
-
-		b := s.endBlock()
-		b.AddEdgeTo(lab.target)
-
+		panic("goto unsupported")
 	case OAS, OASWB:
 
 		var r *ssa.Value
@@ -607,13 +555,6 @@ func (s *state) stmt(stmt ast.Stmt) {
 		b.Control = m*/
 	case ORETJMP:
 		panic("ORETJMP unsupported")
-		/*s.stmtList(n.List)
-		s.stmtList(s.exitCode)
-		m := s.mem()
-		b := s.endBlock()
-		b.Kind = ssa.BlockRetJmp
-		b.Aux = n.Left().Sym
-		b.Control = m*/
 
 	case OCONTINUE, OBREAK:
 		var op string
