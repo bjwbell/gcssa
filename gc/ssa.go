@@ -452,6 +452,10 @@ func (s *state) stmtList(stmtList []ast.Stmt) {
 	}
 }
 
+func NewNode(n ast.Node, ctx Ctx) *Node {
+	return &Node{Node: n, Ctx: ctx}
+}
+
 // ssaStmt converts the statement stmt to SSA and adds it to s.
 func (s *state) stmt(stmt ast.Stmt) {
 	node := stmt.(ast.Node)
@@ -520,29 +524,33 @@ func (s *state) stmt(stmt ast.Stmt) {
 		s.assign(n.Left(), r, n.Op() == OASWB)
 
 	case OIF:
+		ifStmt := stmt.(*ast.IfStmt)
 		bThen := s.f.NewBlock(ssa.BlockPlain)
 		bEnd := s.f.NewBlock(ssa.BlockPlain)
-		/*var bElse *ssa.Block
-		if n.Rlist != nil {
+
+		var bElse *ssa.Block
+		if ifStmt.Else != nil {
 			bElse = s.f.NewBlock(ssa.BlockPlain)
-			s.condBranch(n.Left(), bThen, bElse, n.Likely)
+			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bElse, n.Likely())
 		} else {
-			s.condBranch(n.Left(), bThen, bEnd, n.Likely)
-		}*/
+			s.condBranch(NewNode(ifStmt.Cond, s.ctx), bThen, bEnd, n.Likely())
+		}
 
 		s.startBlock(bThen)
-		//s.stmtList(n.Nbody)
-		/*if b := s.endBlock(); b != nil {
+		if ifStmt.Body != nil {
+			s.stmtList(ifStmt.Body.List)
+		}
+		if b := s.endBlock(); b != nil {
 			b.AddEdgeTo(bEnd)
-		}*/
+		}
 
-		/*if n.Rlist != nil {
+		if ifStmt.Else != nil {
 			s.startBlock(bElse)
-			s.stmtList(n.Rlist)
+			s.stmt(ifStmt.Else)
 			if b := s.endBlock(); b != nil {
 				b.AddEdgeTo(bEnd)
 			}
-		}*/
+		}
 		s.startBlock(bEnd)
 
 	case ORETURN:

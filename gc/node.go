@@ -58,6 +58,12 @@ func (n *Node) Type() *Type {
 
 }
 
+// For if stmts, Likely==-1 means not enough info to determine which branch
+// is more likely.
+func (n *Node) Likely() int8 {
+	return -1
+}
+
 func (n *Node) Typ() ssa.Type {
 	return n.Type()
 
