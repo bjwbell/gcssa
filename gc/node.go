@@ -15,7 +15,8 @@ type Symbol struct {
 
 type Node struct {
 	ast.Node
-	Ctx Ctx
+	Ctx   Ctx
+	class uint8
 }
 
 type IdentDef ast.Object
@@ -265,6 +266,5 @@ func (n *Node) Addrtaken() bool {
 
 // Class, PPARAM, PAUTO, PEXTERN, etc
 func (n *Node) Class() uint8 {
-	// TODO implement
-	return PPARAM
+	return n.class
 }

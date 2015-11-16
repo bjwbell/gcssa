@@ -272,7 +272,7 @@ func (s *state) Debug_checknil() bool                            { return s.conf
 
 var (
 	// dummy node for the memory variable
-	memVar = Node{}
+	memVar = Node{class: Pxxx}
 
 // dummy nodes for temporary variables
 /*ptrVar   = Node{Op: ONAME, Class: Pxxx, Sym: &Sym{Name: "ptr"}}
@@ -707,7 +707,7 @@ func (s *state) stmt(stmt ast.Stmt) {
 		// varkill in the store chain is enough to keep it correctly ordered
 		// with respect to call ops.
 		if !canSSA(n.Left()) {
-			//s.vars[&memVar] = s.newValue1A(ssa.OpVarKill, ssa.TypeMem, n.Left(), s.mem())
+			s.vars[&memVar] = s.newValue1A(ssa.OpVarKill, ssa.TypeMem, n.Left(), s.mem())
 		}
 
 	case OCHECKNIL:
@@ -1856,9 +1856,9 @@ func (s *state) assign(left *Node, right *ssa.Value, wb bool) {
 			// if we can't ssa this memory, treat it as just zeroing out the backing memory
 			//addr := s.addr(left, false)
 			if left.Op() == ONAME {
-				//s.vars[&memVar] = s.newValue1A(ssa.OpVarDef, ssa.TypeMem, left, s.mem())
+				s.vars[&memVar] = s.newValue1A(ssa.OpVarDef, ssa.TypeMem, left, s.mem())
 			}
-			//s.vars[&memVar] = s.newValue2I(ssa.OpZero, ssa.TypeMem, t.Size(), addr, s.mem())
+			s.vars[&memVar] = s.newValue2I(ssa.OpZero, ssa.TypeMem, t.Size(), addr, s.mem())
 			return
 		}
 		right = s.zeroVal(t)
@@ -1872,9 +1872,9 @@ func (s *state) assign(left *Node, right *ssa.Value, wb bool) {
 	// not ssa-able.  Treat as a store.
 	addr := s.addr(left, false)
 	if left.Op() == ONAME {
-		//s.vars[&memVar] = s.newValue1A(ssa.OpVarDef, ssa.TypeMem, left, s.mem())
+		s.vars[&memVar] = s.newValue1A(ssa.OpVarDef, ssa.TypeMem, left, s.mem())
 	}
-	//s.vars[&memVar] = s.newValue3I(ssa.OpStore, ssa.TypeMem, t.Size(), addr, right, s.mem())
+	s.vars[&memVar] = s.newValue3I(ssa.OpStore, ssa.TypeMem, t.Size(), addr, right, s.mem())
 	if wb {
 		s.insertWB(left.Type, addr, left.Lineno())
 	}*/
@@ -2353,14 +2353,14 @@ func (s *state) rtcall(fn *Node, returns bool, results []*Type, args ...*ssa.Val
 			}
 		}
 		size := t.Size()
-		//s.vars[&memVar] = s.newValue3I(ssa.OpStore, ssa.TypeMem, size, ptr, arg, s.mem())
+		s.vars[&memVar] = s.newValue3I(ssa.OpStore, ssa.TypeMem, size, ptr, arg, s.mem())
 		off += size
 	}
 	off = Rnd(off, int64(Widthptr))
 
 	// Issue call
 	call := s.newValue1A(ssa.OpStaticCall, ssa.TypeMem, fn.Symbol(), s.mem())
-	//s.vars[&memVar] = call
+	s.vars[&memVar] = call
 
 	// Finish block
 	b := s.endBlock()
@@ -2889,8 +2889,7 @@ func (s *state) variable(name *Node, t ssa.Type) *ssa.Value {
 }
 
 func (s *state) mem() *ssa.Value {
-	//return s.variable(&memVar, ssa.TypeMem)
-	return nil
+	return s.variable(&memVar, ssa.TypeMem)
 }
 
 func (s *state) linkForwardReferences() {
@@ -2918,9 +2917,9 @@ func (s *state) lookupVarIncoming(b *ssa.Block, t ssa.Type, name *Node) *ssa.Val
 	// TODO(khr): have lookupVarIncoming overwrite the fwdRef or copy it
 	// will be used in, instead of having the result used in a copy value.
 	if b == s.f.Entry {
-		/*if name == &memVar {
+		if name == &memVar {
 			return s.startmem
-		}*/
+		}
 		if canSSA(name) {
 			v := s.entryNewValue0A(ssa.OpArg, t, name)
 			// v starts with AuxInt == 0.
@@ -2947,9 +2946,9 @@ func (s *state) lookupVarIncoming(b *ssa.Block, t ssa.Type, name *Node) *ssa.Val
 		// This block is dead; we have no predecessors and we're not the entry block.
 		// It doesn't matter what we use here as long as it is well-formed,
 		// so use the default/zero value.
-		/*if name == &memVar {
+		if name == &memVar {
 			return s.startmem
-		}*/
+		}
 		return s.zeroVal(name.Type())
 	}
 	v0 := vals[0]
