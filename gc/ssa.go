@@ -2741,7 +2741,7 @@ func (s *state) floatToUint(cvttab *f2uCvtTab, n *Node, x *ssa.Value, ft, tt *Ty
 	if a0 == nil {
 		panic("")
 	}
-	//s.vars[n] = a0
+	s.vars[n] = a0
 	s.endBlock()
 	bThen.AddEdgeTo(bAfter)
 
@@ -2754,7 +2754,7 @@ func (s *state) floatToUint(cvttab *f2uCvtTab, n *Node, x *ssa.Value, ft, tt *Ty
 	if a1 == nil {
 		panic("")
 	}
-	//s.vars[n] = a1
+	s.vars[n] = a1
 	s.endBlock()
 	bElse.AddEdgeTo(bAfter)
 
