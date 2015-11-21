@@ -2612,8 +2612,8 @@ func (s *state) uintTofloat(cvttab *u2fcvtTab, n *Node, x *ssa.Value, ft, tt *Ty
 
 	b.AddEdgeTo(bThen)
 	s.startBlock(bThen)
-	//a0 := s.newValue1(cvttab.cvt2F, tt, x)
-	//s.vars[n] = a0
+	a0 := s.newValue1(cvttab.cvt2F, tt, x)
+	s.vars[n] = a0
 	s.endBlock()
 	bThen.AddEdgeTo(bAfter)
 
@@ -2627,8 +2627,8 @@ func (s *state) uintTofloat(cvttab *u2fcvtTab, n *Node, x *ssa.Value, ft, tt *Ty
 	if a == nil {
 		panic("")
 	}
-	//a1 := s.newValue2(cvttab.add, tt, a, a)
-	//s.vars[n] = a1
+	a1 := s.newValue2(cvttab.add, tt, a, a)
+	s.vars[n] = a1
 	s.endBlock()
 	bElse.AddEdgeTo(bAfter)
 
