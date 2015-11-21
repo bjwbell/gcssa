@@ -179,7 +179,7 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 		}
 	*/
 	// Link up variable uses to variable definitions
-	//	s.linkForwardReferences()
+	s.linkForwardReferences()
 
 	// Main call to ssa package to compile function
 	//ssa.Compile(s.f)
