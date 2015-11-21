@@ -11,6 +11,14 @@ type Type struct {
 	types.Type
 }
 
+func StdSizes() types.StdSizes {
+	var std types.StdSizes
+	// TODO: make dependent on arch
+	std.WordSize = 8
+	std.MaxAlign = 8
+	return std
+}
+
 var typeToEtype = map[types.BasicKind]int64{
 	types.Bool:          TBOOL,
 	types.Int:           TINT,
@@ -150,12 +158,12 @@ func (t *Type) IsInterface() bool {
 }
 
 func (t *Type) Size() int64 {
-	var std types.StdSizes
+	std := StdSizes()
 	return std.Sizeof(t.Type)
 }
 
 func (t *Type) Alignment() int64 {
-	var std types.StdSizes
+	std := StdSizes()
 	return std.Alignof(t.Type)
 }
 
@@ -208,9 +216,9 @@ func (t *Type) FieldOff(i int64) int64 {
 		if int64(s.NumFields()) <= i {
 			panic("Invalid field #")
 		}
-		var stdSizes types.StdSizes
+		std := StdSizes()
 		field := s.Field(int(i))
-		offsets := stdSizes.Offsetsof([]*types.Var{field})
+		offsets := std.Offsetsof([]*types.Var{field})
 		return offsets[0]
 	}
 }

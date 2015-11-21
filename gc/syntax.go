@@ -6,6 +6,8 @@
 
 package gc
 
+import "fmt"
+
 // SetVal sets the Val for the node, which must not have been used with SetOpt.
 func (n *Node) SetVal(v Val) {
 	/*if n.hasVal == -1 {
@@ -42,8 +44,7 @@ func (n *Node) SetOpt(x interface{}) {
 }
 
 func (n *Node) String() string {
-	// TODO
-	return "<Node>"
+	return fmt.Sprintf("ast.Node: %#v, linenum: %v", n.Node, n.Lineno())
 }
 
 // Name holds Node fields used only by named nodes (ONAME, OPACK, some OLITERAL).

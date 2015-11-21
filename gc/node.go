@@ -3,8 +3,10 @@ package gc
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
+	"math/big"
 
 	"github.com/bjwbell/ssa"
 )
@@ -71,7 +73,36 @@ func (n *Node) Typ() ssa.Type {
 }
 
 func (n *Node) Val() Val {
-	return Val{}
+	var expr ast.Expr
+	var ok bool
+	if expr, ok = n.Node.(ast.Expr); ok {
+		var typeAndValue types.TypeAndValue
+		if typeAndValue, ok = n.Ctx.fn.Types[expr]; ok {
+			if typeAndValue.Value == nil {
+				panic("internal compiler error")
+			}
+			if typeAndValue.Value.Kind() != constant.Int {
+				panic("unimplemented")
+			}
+			if i64, exact := constant.Int64Val(typeAndValue.Value); exact {
+				mpInt := Mpint{}
+				mpInt.Val = *big.NewInt(i64)
+				val := Val{}
+				val.U = &mpInt
+				return val
+			} else {
+				panic("internal compiler error")
+			}
+		} else {
+			panic("internal compiler error")
+		}
+	} else if _, ok = n.Node.(*ast.BasicLit); ok {
+		panic("unimplemented")
+
+	} else {
+		// TODO: other ast.*
+		return Val{}
+	}
 }
 
 func (n *Node) Op() NodeOp {
@@ -181,6 +212,9 @@ func (n *Node) Op() NodeOp {
 		return ORETURN
 	case *ast.IfStmt:
 		return OIF
+	case *ast.Ident:
+		// TODO: return OPARAM for parameters?
+		return ONAME
 	default:
 		fmt.Printf("node: %#v\n", node)
 		panic("unimplemented")
