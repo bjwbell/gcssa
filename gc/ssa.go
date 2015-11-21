@@ -2876,14 +2876,13 @@ func (s *state) checkgoto(from *Node, to *Node) {
 
 // variable returns the value of a variable at the current location.
 func (s *state) variable(name *Node, t ssa.Type) *ssa.Value {
-	/*v := s.vars[name]
+	v := s.vars[name]
 	if v == nil {
 		// TODO: get type?  Take Sym as arg?
 		v = s.newValue0A(ssa.OpFwdRef, t, name)
 		s.vars[name] = v
 	}
-	return v*/
-	return nil
+	return v
 }
 
 func (s *state) mem() *ssa.Value {
