@@ -136,6 +136,12 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 		s.decladdrs[local] = s.entryNewValue1A(ssa.OpAddr, Ptrto(local.Type()), aux, s.sp)
 	}
 
+	nodfp = &Node{Node: nil, Ctx: ctx, class: 0} //Nod(ONAME, nil, nil)
+	/*nodfp.Type = Types[TINT32]
+	nodfp.Xoffset = 0
+	nodfp.Class = PPARAM
+	nodfp.Sym = Lookup(".fp")*/
+
 	// nodfp is a special argument which is the function's FP.
 	//aux := &ssa.ArgSymbol{Typ: Types[TUINTPTR], Node: nodfp}
 	//s.decladdrs[nodfp] = s.entryNewValue1A(ssa.OpAddr, Types[TUINTPTR], aux, s.sp)
@@ -143,16 +149,16 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 	// Convert the AST-based IR to the SSA-based IR
 	s.stmtList(fn.Body.List)
 	// fallthrough to exit
-	/*if s.curBlock != nil {
-		s.stmtList(s.exitCode)
+	if s.curBlock != nil {
+		//s.stmtList(s.exitCode)
 		m := s.mem()
 		b := s.endBlock()
 		b.Kind = ssa.BlockRet
 		b.Control = m
-	}*/
+	}
 
 	// Check that we used all labels
-	/*for name, lab := range s.labels {
+	for name, lab := range s.labels {
 		if !lab.used() && !lab.reported {
 			panic(fmt.Sprintf("label %v defined and not used", name))
 			//yyerrorl(int(lab.defNode.Lineno()), "label %v defined and not used", name)
@@ -163,21 +169,21 @@ func BuildSSA(ftok *token.File, f *ast.File, fn *ast.FuncDecl, fnType *types.Fun
 			//yyerrorl(int(lab.useNode.Lineno()), "label %v not defined", name)
 			//lab.reported = true
 		}
-	}*/
+	}
 
 	// Check any forward gotos. Non-forward gotos have already been checked.
-	/*	for _, n := range s.fwdGotos {
-			lab := s.labels[n.Left().Sym.Name]
-			// If the label is undefined, we have already have printed an error.
-			if lab.defined() {
-				s.checkgoto(n, lab.defNode)
-			}
+	/*for _, n := range s.fwdGotos {
+		lab := s.labels[n.Left().Sym.Name]
+		// If the label is undefined, we have already have printed an error.
+		if lab.defined() {
+			s.checkgoto(n, lab.defNode)
 		}
+	}*/
 
-		if nerrors > 0 {
-			return nil, false
-		}
-	*/
+	if nerrors > 0 {
+		return nil, false
+	}
+
 	// Link up variable uses to variable definitions
 	s.linkForwardReferences()
 
