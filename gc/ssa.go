@@ -3140,9 +3140,11 @@ func (s *state) extendIndex(v *ssa.Value) *ssa.Value {
 	return s.newValue1(op, Types[TINT], v)
 }
 
+type Prog string
+
 // an unresolved branch
 type branch struct {
-	//p *obj.Prog  // branch instruction
+	p *Prog      // branch instruction
 	b *ssa.Block // target
 }
 
@@ -3152,19 +3154,22 @@ type genState struct {
 	branches []branch
 
 	// bstart remembers where each block starts (indexed by block ID)
-	//bstart []*obj.Prog
+	bstart []*Prog
 
 	// deferBranches remembers all the defer branches we've seen.
-	//deferBranches []*obj.Prog
+	deferBranches []*Prog
 
 	// deferTarget remembers the (last) deferreturn call site.
-	//deferTarget *obj.Prog
+	deferTarget *Prog
 }
 
 func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 	//TODO
-	return "", true
-	/*var s genState
+	//return "", true
+
+	Pc = new(Prog)
+
+	var s genState
 
 	e := f.Config.Frontend().(*ssaExport)
 	// We're about to emit a bunch of Progs.
@@ -3173,29 +3178,28 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 	e.mustImplement = true
 
 	// Remember where each block starts.
-	s.bstart = make([]*obj.Prog, f.NumBlocks())
+	s.bstart = make([]*Prog, f.NumBlocks())
 
-	var valueProgs map[*obj.Prog]*ssa.Value
-	var blockProgs map[*obj.Prog]*ssa.Block
+	//var valueProgs map[*Prog]*ssa.Value
+	var blockProgs map[*Prog]*ssa.Block
 	const logProgs = true
 	if logProgs {
-		valueProgs = make(map[*obj.Prog]*ssa.Value, f.NumValues())
-		blockProgs = make(map[*obj.Prog]*ssa.Block, f.NumBlocks())
+		//valueProgs = make(map[*Prog]*ssa.Value, f.NumValues())
+		blockProgs = make(map[*Prog]*ssa.Block, f.NumBlocks())
 		f.Logf("genssa %s\n", f.Name)
 		blockProgs[Pc] = f.Blocks[0]
 	}
-
 	// Emit basic blocks
 	for i, b := range f.Blocks {
 		s.bstart[b.ID] = Pc
 		// Emit values in block
 		for _, v := range b.Values {
-			x := Pc
+			//x := Pc
 			s.genValue(v)
 			if logProgs {
-				for ; x != Pc; x = x.Link {
+				/*for ; x != Pc; x = x.Link {
 					valueProgs[x] = v
-				}
+				}*/
 			}
 		}
 		// Emit control flow instructions for block
@@ -3203,20 +3207,20 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 		if i < len(f.Blocks)-1 {
 			next = f.Blocks[i+1]
 		}
-		x := Pc
+		//x := Pc
 		s.genBlock(b, next)
 		if logProgs {
-			for ; x != Pc; x = x.Link {
+			/*for ; x != Pc; x = x.Link {
 				blockProgs[x] = b
-			}
+			}*/
 		}
 	}
 
 	// Resolve branches
-	for _, br := range s.branches {
+	/*for _, br := range s.branches {
 		br.p.To.Val = s.bstart[br.b.ID]
-	}
-	if s.deferBranches != nil && s.deferTarget == nil {
+	}*/
+	/*if s.deferBranches != nil && s.deferTarget == nil {
 		// This can happen when the function has a defer but
 		// no return (because it has an infinite loop).
 		s.deferReturn()
@@ -3224,10 +3228,10 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 	}
 	for _, p := range s.deferBranches {
 		p.To.Val = s.deferTarget
-	}
+	}*/
 
 	if logProgs {
-		for p := ptxt; p != nil; p = p.Link {
+		/*for p := ptxt; p != nil; p = p.Link {
 			var s string
 			if v, ok := valueProgs[p]; ok {
 				s = v.String()
@@ -3237,67 +3241,43 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 				s = "   " // most value and branch strings are 2-3 characters long
 			}
 			f.Logf("%s\t%s\n", s, p)
-		}
-		if f.Config.HTML != nil {
-			saved := ptxt.Ctxt.LineHist.PrintFilenameOnly
-			ptxt.Ctxt.LineHist.PrintFilenameOnly = true
-			var buf bytes.Buffer
-			buf.WriteString("<code>")
-			buf.WriteString("<dl class=\"ssa-gen\">")
-			for p := ptxt; p != nil; p = p.Link {
-				buf.WriteString("<dt class=\"ssa-prog-src\">")
-				if v, ok := valueProgs[p]; ok {
-					buf.WriteString(v.HTML())
-				} else if b, ok := blockProgs[p]; ok {
-					buf.WriteString(b.HTML())
-				}
-				buf.WriteString("</dt>")
-				buf.WriteString("<dd class=\"ssa-prog\">")
-				buf.WriteString(html.EscapeString(p.String()))
-				buf.WriteString("</dd>")
-				buf.WriteString("</li>")
-			}
-			buf.WriteString("</dl>")
-			buf.WriteString("</code>")
-			f.Config.HTML.WriteColumn("genssa", buf.String())
-			ptxt.Ctxt.LineHist.PrintFilenameOnly = saved
-		}
+		}*/
+
 	}
 
 	// Emit static data
-	if f.StaticData != nil {
+	/*if f.StaticData != nil {
 		for _, n := range f.StaticData.([]*Node) {
 			if !gen_as_init(n, false) {
 				Fatalf("non-static data marked as static: %v\n\n", n, f)
 			}
 		}
-	}
+	}*/
 
 	// Allocate stack frame
-	allocauto(ptxt)
+	//allocauto(ptxt)
 
 	// Generate gc bitmaps.
-	liveness(Curfn, ptxt, gcargs, gclocals)
+	/*liveness(Curfn, ptxt, gcargs, gclocals)
 	gcsymdup(gcargs)
-	gcsymdup(gclocals)
+	gcsymdup(gclocals)*/
 
 	// Add frame prologue.  Zero ambiguously live variables.
-	Thearch.Defframe(ptxt)
+	/*Thearch.Defframe(ptxt)
 	if Debug['f'] != 0 {
 		frame(0)
-	}
+	}*/
 
 	// Remove leftover instrumentation from the instruction stream.
-	removevardef(ptxt)
-
-	f.Config.HTML.Close()*/
+	//removevardef(ptxt)
+	return "", true
 }
 
 // opregreg emits instructions for
 //     dest := dest(To) op src(From)
-// and also returns the created obj.Prog so it
+// and also returns the created Prog so it
 // may be further adjusted (offset, scale, etc).
-/*func opregreg(op int, dest, src int16) *obj.Prog {
+/*func opregreg(op int, dest, src int16) *Prog {
 	p := Prog(op)
 	p.From.Type = obj.TYPE_REG
 	p.To.Type = obj.TYPE_REG
@@ -3411,12 +3391,12 @@ func (s *genState) genValue(v *ssa.Value) {
 
 			// CPU faults upon signed overflow, which occurs when most
 			// negative int is divided by -1.
-			var j *obj.Prog
+			var j *Prog
 			if v.Op == ssa.OpAMD64DIVQ || v.Op == ssa.OpAMD64DIVL ||
 				v.Op == ssa.OpAMD64DIVW || v.Op == ssa.OpAMD64MODQ ||
 				v.Op == ssa.OpAMD64MODL || v.Op == ssa.OpAMD64MODW {
 
-				var c *obj.Prog
+				var c *Prog
 				switch v.Op {
 				case ssa.OpAMD64DIVQ, ssa.OpAMD64MODQ:
 					c = Prog(x86.ACMPQ)
@@ -3464,7 +3444,7 @@ func (s *genState) genValue(v *ssa.Value) {
 				j2 := Prog(obj.AJMP)
 				j2.To.Type = obj.TYPE_BRANCH
 
-				var n *obj.Prog
+				var n *Prog
 				if v.Op == ssa.OpAMD64DIVQ || v.Op == ssa.OpAMD64DIVL ||
 					v.Op == ssa.OpAMD64DIVW {
 					// n * -1 = -n
@@ -4146,7 +4126,7 @@ func (s *genState) genBlock(b, next *ssa.Block) {
 		ssa.BlockAMD64ULE, ssa.BlockAMD64UGE:
 		jmp := blockJump[b.Kind]
 		likely := b.Likely
-		var p *obj.Prog
+		var p *Prog
 		switch next {
 		case b.Succs[0]:
 			p = Prog(jmp.invasm)
