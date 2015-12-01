@@ -242,31 +242,38 @@ func (n *Node) Xoffset() int64 {
 	return 0
 }
 
-func (n *Node) BinaryExpr() (left, right *Node) {
+func (n *Node) BinaryNode() (left, right *Node) {
 	if expr, ok := n.Node.(*ast.BinaryExpr); ok {
 		left = &Node{Node: expr.X, Ctx: n.Ctx}
 		right = &Node{Node: expr.Y, Ctx: n.Ctx}
 		return
 
+	} else if assignStmt, ok := n.Node.(*ast.AssignStmt); ok {
+		if len(assignStmt.Lhs) != 1 || len(assignStmt.Rhs) != 1 {
+			panic("Assignment statement with multiple assignments unsupported")
+		}
+		left = &Node{Node: assignStmt.Lhs[0], Ctx: n.Ctx}
+		right = &Node{Node: assignStmt.Rhs[0], Ctx: n.Ctx}
+		return
 	} else {
 		panic("Not a binary expr")
 	}
 }
 
 func (n *Node) Left() (left *Node) {
-	left, _ = n.BinaryExpr()
+	left, _ = n.BinaryNode()
 	return
 }
 
 func (n *Node) Right() (right *Node) {
-	_, right = n.BinaryExpr()
+	_, right = n.BinaryNode()
 	return
 }
 
 func (n *Node) LeftRight() (left, right *Node) {
 	switch node := n.Node.(type) {
 	case *ast.BinaryExpr:
-		return n.BinaryExpr()
+		return n.BinaryNode()
 	case *ast.DeclStmt:
 		dcl := node.Decl.(*ast.GenDecl)
 		if dcl.Tok == token.VAR {
