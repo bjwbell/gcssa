@@ -93,10 +93,19 @@ func main() {
 		fmt.Println("couldn't find function: ", *fn)
 		return
 	}
-	ss, ok := gc.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
-	if !ok || ss == nil {
+	ssafn, ok := gc.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
+	if ssafn == nil || !ok {
 		fmt.Println("Error building SSA form")
 	} else {
-		fmt.Println("ssa:\n", ss)
+		fmt.Println("ssa:\n", ssafn)
+	}
+
+	if ssafn != nil && ok {
+		assembly, ok := gc.GenSSA(ssafn)
+		if !ok {
+			fmt.Println("Error creating assembly for SSA")
+		} else {
+			fmt.Println("ssa assembly:\n", assembly)
+		}
 	}
 }
