@@ -155,19 +155,15 @@ func Yyerror(format string, args ...interface{}) {
 		errorexit()
 	}
 }
+*/
 
 func Warn(fmt_ string, args ...interface{}) {
-	adderr(parserline(), fmt_, args...)
-
-	hcrash()
+	fmt.Printf("Warning: "+fmt_, args)
 }
 
 func Warnl(line int, fmt_ string, args ...interface{}) {
-	adderr(line, fmt_, args...)
-	if Debug['m'] != 0 {
-		Flusherrors()
-	}
-}*/
+	fmt.Printf("Warning (line %v): "+fmt_+" ", line, args)
+}
 
 func Fatalf(fmt_ string, args ...interface{}) {
 	//Flusherrors()
