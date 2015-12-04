@@ -1,4 +1,4 @@
-package gc
+package gcssa
 
 func temp(t *Type) *Node {
 	return nil

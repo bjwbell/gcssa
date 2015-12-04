@@ -4,7 +4,7 @@
 
 // “Abstract” syntax representation.
 
-package gc
+package gcssa
 
 import "fmt"
 

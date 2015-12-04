@@ -1,4 +1,4 @@
-package gc
+package gcssa
 
 func min8(a, b int8) int8 {
 	if a < b {

@@ -1,4 +1,4 @@
-package gc
+package gcssa
 
 // Fmt "%O":  Node opcodes
 func Oconv(o int, flag int) string {

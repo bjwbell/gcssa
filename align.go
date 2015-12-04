@@ -1,4 +1,4 @@
-package gc
+package gcssa
 
 func Rnd(o int64, r int64) int64 {
 	if r < 1 || r > 8 || r&(r-1) != 0 {

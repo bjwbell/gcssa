@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bjwbell/gcssa/gc"
+	"github.com/bjwbell/gcssa"
 )
 
 func filePath(pathName string) string {
@@ -93,7 +93,7 @@ func main() {
 		fmt.Println("couldn't find function: ", *fn)
 		return
 	}
-	ssafn, ok := gc.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
+	ssafn, ok := gcssa.BuildSSA(fileTok, fileAst, fnDecl, function, &info)
 	if ssafn == nil || !ok {
 		fmt.Println("Error building SSA form")
 	} else {
@@ -101,11 +101,11 @@ func main() {
 	}
 
 	if ssafn != nil && ok {
-		fnProgs, ok := gc.GenSSA(ssafn)
+		fnProgs, ok := gcssa.GenSSA(ssafn)
 		if !ok {
 			fmt.Println("Error creating assembly for SSA")
 		} else {
-			fmt.Printf("ssa assembly:\n%s", gc.Assemble(fnProgs))
+			fmt.Printf("ssa assembly:\n%s", gcssa.Assemble(fnProgs))
 		}
 	}
 }

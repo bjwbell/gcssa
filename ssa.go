@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package gc
+package gcssa
 
 import (
 	"bytes"
@@ -3611,7 +3611,7 @@ func (p *Prog) Sprint(verbose bool) string {
 		sep = ", "
 	}
 	if p.Reg != REG_NONE {
-		// Should not happen but might as well show it if it does.
+		// Should not happen but might as well show it if it does
 		fmt.Fprintf(&buf, "%s%v", sep, Rconv(int(p.Reg)))
 		sep = ", "
 	}
@@ -3722,16 +3722,10 @@ func GenSSA(f *ssa.Func) (fnProg []*Prog, ok bool) {
 	}
 
 	if s.deferBranches != nil && s.deferTarget == nil {
-		panic("unsupported")
-		/*// This can happen when the function has a defer but
-		// no return (because it has an infinite loop).
-		s.deferReturn()
-		Prog(obj.ARET)*/
+		panic("defer unsupported")
 	}
-	for _, p := range s.deferBranches {
-		fmt.Println("defer branch p: ", p)
-		panic("unsupported")
-		//p.To.Val = s.deferTarget
+	if len(s.deferBranches) > 0 {
+		panic("defer unsupported")
 	}
 
 	if logProgs {

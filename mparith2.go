@@ -1,4 +1,4 @@
-package gc
+package gcssa
 
 func Mpgetfix(a *Mpint) int64 {
 	if a.Ovf {
