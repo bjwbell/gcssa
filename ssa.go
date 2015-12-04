@@ -579,9 +579,9 @@ func (s *state) stmt(stmt ast.Stmt) {
 		if len(retStmt.Results) > 1 {
 			panic("multiple return values unsupported")
 		} else if len(retStmt.Results) == 0 {
+			m := s.mem()
 			b := s.endBlock()
 			b.Kind = ssa.BlockRet
-			m := s.mem()
 			b.Control = m
 		} else { // len(retStmt.Results) == 1
 			//s.stmtList(n.List)
