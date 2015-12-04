@@ -3488,6 +3488,10 @@ const (
 	TYPE_REGLIST
 )
 
+const (
+	NAME_EXTERN = iota
+)
+
 // opregreg emits instructions for
 //     dest := dest(To) op src(From)
 // and also returns the created obj.Prog so it
@@ -4277,7 +4281,7 @@ func movSizeByType(t ssa.Type) (asm int) {
 	return nleft, offset
 }*/
 
-/*var blockJump = [...]struct {
+var blockJump = [...]struct {
 	asm, invasm int
 }{
 	ssa.BlockAMD64EQ:  {x86.AJEQ, x86.AJNE},
@@ -4294,7 +4298,7 @@ func movSizeByType(t ssa.Type) (asm int) {
 	ssa.BlockAMD64NAN: {x86.AJPS, x86.AJPC},
 }
 
-type floatingEQNEJump struct {
+/*type floatingEQNEJump struct {
 	jump, index int
 }
 
@@ -4350,35 +4354,40 @@ var nefJumps = [2][2]floatingEQNEJump{
 }*/
 
 func (s *genState) genBlock(b, next *ssa.Block) []*Prog {
-	//TODO
-	return nil
-	/*lineno = b.Line
+	var progs []*Prog
+	//return nil
+	lineno = b.Line
 
 	switch b.Kind {
 	case ssa.BlockPlain, ssa.BlockCall, ssa.BlockCheck:
 		if b.Succs[0] != next {
-			p := Prog(obj.AJMP)
+			p := CreateProg(obj.AJMP)
 			p.To.Type = TYPE_BRANCH
 			s.branches = append(s.branches, branch{p, b.Succs[0]})
+			progs = append(progs, p)
 		}
 	case ssa.BlockExit:
-		Prog(obj.AUNDEF) // tell plive.go that we never reach here
+		progs = append(progs, CreateProg(obj.AUNDEF)) // tell plive.go that we never reach here
 	case ssa.BlockRet:
 		if hasdefer {
-			s.deferReturn()
+			panic("defer unsupported")
+			//s.deferReturn()
 		}
-		Prog(obj.ARET)
+		progs = append(progs, CreateProg(obj.ARET))
 	case ssa.BlockRetJmp:
-		p := Prog(obj.AJMP)
+		p := CreateProg(obj.AJMP)
 		p.To.Type = TYPE_MEM
-		p.To.Name = obj.NAME_EXTERN
-		p.To.Sym = Linksym(b.Aux.(*Sym))
+		p.To.Name = NAME_EXTERN
+		//p.To.Sym = Linksym(b.Aux.(*Sym))
+		progs = append(progs, p)
 
 	case ssa.BlockAMD64EQF:
-		genFPJump(s, b, next, &eqfJumps)
+		panic("unimplementedf")
+		//genFPJump(s, b, next, &eqfJumps)
 
 	case ssa.BlockAMD64NEF:
-		genFPJump(s, b, next, &nefJumps)
+		panic("unimplementedf")
+		//genFPJump(s, b, next, &nefJumps)
 
 	case ssa.BlockAMD64EQ, ssa.BlockAMD64NE,
 		ssa.BlockAMD64LT, ssa.BlockAMD64GE,
@@ -4390,19 +4399,19 @@ func (s *genState) genBlock(b, next *ssa.Block) []*Prog {
 		var p *Prog
 		switch next {
 		case b.Succs[0]:
-			p = Prog(jmp.invasm)
+			p = CreateProg(jmp.invasm)
 			likely *= -1
 			p.To.Type = TYPE_BRANCH
 			s.branches = append(s.branches, branch{p, b.Succs[1]})
 		case b.Succs[1]:
-			p = Prog(jmp.asm)
+			p = CreateProg(jmp.asm)
 			p.To.Type = TYPE_BRANCH
 			s.branches = append(s.branches, branch{p, b.Succs[0]})
 		default:
-			p = Prog(jmp.asm)
+			p = CreateProg(jmp.asm)
 			p.To.Type = TYPE_BRANCH
 			s.branches = append(s.branches, branch{p, b.Succs[0]})
-			q := Prog(obj.AJMP)
+			q := CreateProg(obj.AJMP)
 			q.To.Type = TYPE_BRANCH
 			s.branches = append(s.branches, branch{q, b.Succs[1]})
 		}
@@ -4419,11 +4428,12 @@ func (s *genState) genBlock(b, next *ssa.Block) []*Prog {
 			p.From.Type = TYPE_CONST
 			p.From.Offset = 1
 		}
-
+		progs = append(progs, p)
 	default:
 		panic("unimplemented")
 		//b.Unimplementedf("branch not implemented: %s. Control: %s", b.LongString(), b.Control.LongString())
-	}*/
+	}
+	return progs
 }
 
 func (s *genState) deferReturn() {
