@@ -101,11 +101,11 @@ func main() {
 	}
 
 	if ssafn != nil && ok {
-		assembly, ok := gc.GenSSA(ssafn)
+		fnProgs, ok := gc.GenSSA(ssafn)
 		if !ok {
 			fmt.Println("Error creating assembly for SSA")
 		} else {
-			fmt.Println("ssa assembly:\n", assembly)
+			fmt.Printf("ssa assembly:\n%s", gc.Assemble(fnProgs))
 		}
 	}
 }

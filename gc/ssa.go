@@ -3595,15 +3595,16 @@ func Rconv(reg int) string {
 }
 
 func (p *Prog) String() string {
-	//if p.Ctxt == nil {
-	//	return "<Prog without ctxt>"
-	//}
+	return p.Sprint(true)
+}
 
-	sc := "" //CConv(p.Scond)
-
+func (p *Prog) Sprint(verbose bool) string {
 	var buf bytes.Buffer
-
-	fmt.Fprintf(&buf, "%.5d (%v)\t%v%s", p.Pc, p.Line(), Aconv(int(p.As)), sc)
+	if verbose {
+		fmt.Fprintf(&buf, "%.5d (%v)\t%v", p.Pc, p.Line(), Aconv(int(p.As)))
+	} else {
+		fmt.Fprintf(&buf, "%s", Aconv(int(p.As)))
+	}
 	sep := "\t"
 	if p.From.Type != TYPE_NONE {
 		fmt.Fprintf(&buf, "%s%v", sep, Dconv(p, &p.From))
@@ -3653,7 +3654,15 @@ type genState struct {
 	deferTarget *Prog
 }
 
-func GenSSA(f *ssa.Func) (assembly string, ok bool) {
+func Assemble(fn []*Prog) (assembly string) {
+	assembly = ""
+	for _, p := range fn {
+		assembly += p.Sprint(false) + "\n"
+	}
+	return assembly
+}
+
+func GenSSA(f *ssa.Func) (fnProg []*Prog, ok bool) {
 
 	Pc := new(Prog)
 
@@ -3766,7 +3775,7 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 
 	// Remove leftover instrumentation from the instruction stream.
 	//removevardef(ptxt)
-	return "", true
+	return funcProgs, true
 }
 
 // opregreg emits instructions for
