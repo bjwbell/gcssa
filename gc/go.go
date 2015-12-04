@@ -522,8 +522,6 @@ var Nacl bool
 
 //var breakpc *obj.Prog
 
-var Pc *Prog
-
 var nodfp *Node
 
 var Disable_checknil int

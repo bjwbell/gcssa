@@ -3314,10 +3314,8 @@ type genState struct {
 }
 
 func GenSSA(f *ssa.Func) (assembly string, ok bool) {
-	//TODO
-	//return "", true
 
-	Pc = new(Prog)
+	Pc := new(Prog)
 
 	var s genState
 
@@ -3330,26 +3328,28 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 	// Remember where each block starts.
 	s.bstart = make([]*Prog, f.NumBlocks())
 
-	//var valueProgs map[*Prog]*ssa.Value
+	var valueProgs map[*Prog]*ssa.Value
 	var blockProgs map[*Prog]*ssa.Block
 	const logProgs = true
 	if logProgs {
-		//valueProgs = make(map[*Prog]*ssa.Value, f.NumValues())
+		valueProgs = make(map[*Prog]*ssa.Value, f.NumValues())
 		blockProgs = make(map[*Prog]*ssa.Block, f.NumBlocks())
 		f.Logf("genssa %s\n", f.Name)
 		blockProgs[Pc] = f.Blocks[0]
 	}
+	var funcProgs []*Prog
 	// Emit basic blocks
 	for i, b := range f.Blocks {
 		s.bstart[b.ID] = Pc
 		// Emit values in block
 		for _, v := range b.Values {
 			//x := Pc
-			s.genValue(v)
+			progs := s.genValue(v)
 			if logProgs {
-				/*for ; x != Pc; x = x.Link {
-					valueProgs[x] = v
-				}*/
+				for _, prog := range progs {
+					valueProgs[prog] = v
+					funcProgs = append(funcProgs, prog)
+				}
 			}
 		}
 		// Emit control flow instructions for block
@@ -3358,30 +3358,35 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 			next = f.Blocks[i+1]
 		}
 		//x := Pc
-		s.genBlock(b, next)
+		progs := s.genBlock(b, next)
 		if logProgs {
-			/*for ; x != Pc; x = x.Link {
-				blockProgs[x] = b
-			}*/
+			for _, prog := range progs {
+				blockProgs[prog] = b
+				funcProgs = append(funcProgs, prog)
+			}
 		}
 	}
 
 	// Resolve branches
-	/*for _, br := range s.branches {
+	for _, br := range s.branches {
 		br.p.To.Val = s.bstart[br.b.ID]
-	}*/
-	/*if s.deferBranches != nil && s.deferTarget == nil {
-		// This can happen when the function has a defer but
+	}
+
+	if s.deferBranches != nil && s.deferTarget == nil {
+		panic("unsupported")
+		/*// This can happen when the function has a defer but
 		// no return (because it has an infinite loop).
 		s.deferReturn()
-		Prog(obj.ARET)
+		Prog(obj.ARET)*/
 	}
 	for _, p := range s.deferBranches {
-		p.To.Val = s.deferTarget
-	}*/
+		fmt.Println("defer branch p: ", p)
+		panic("unsupported")
+		//p.To.Val = s.deferTarget
+	}
 
 	if logProgs {
-		/*for p := ptxt; p != nil; p = p.Link {
+		for _, p := range funcProgs {
 			var s string
 			if v, ok := valueProgs[p]; ok {
 				s = v.String()
@@ -3390,19 +3395,20 @@ func GenSSA(f *ssa.Func) (assembly string, ok bool) {
 			} else {
 				s = "   " // most value and branch strings are 2-3 characters long
 			}
-			f.Logf("%s\t%s\n", s, p)
-		}*/
-
+			//f.Logf("%s\t%s\n", s, p)
+			fmt.Println("ASM: ", s, "\t", p)
+		}
 	}
 
 	// Emit static data
-	/*if f.StaticData != nil {
-		for _, n := range f.StaticData.([]*Node) {
+	if f.StaticData != nil {
+		panic("static data unsupported")
+		/*for _, n := range f.StaticData.([]*Node) {
 			if !gen_as_init(n, false) {
 				Fatalf("non-static data marked as static: %v\n\n", n, f)
 			}
-		}
-	}*/
+		}*/
+	}
 
 	// Allocate stack frame
 	//allocauto(ptxt)
@@ -3462,6 +3468,10 @@ func CreateProg(as int) *Prog {
 	return p
 }
 
+func ProgAssembly(p *Prog) string {
+	return ""
+}
+
 const (
 	TYPE_BRANCH = 5 + iota
 	TYPE_TEXTSIZE
@@ -3491,19 +3501,21 @@ func opregreg(op int, dest, src int16) *Prog {
 	return p
 }
 
-func (s *genState) genValue(v *ssa.Value) *Prog {
+func (s *genState) genValue(v *ssa.Value) []*Prog {
+	var progs []*Prog
 	var p *Prog
 	lineno = v.Line
 	switch v.Op {
 	case ssa.OpAMD64ADDQ:
 		// TODO: use addq instead of leaq if target is in the right register.
-		p = CreateProg(x86.ALEAQ)
+		p := CreateProg(x86.ALEAQ)
 		p.From.Type = TYPE_MEM
 		p.From.Reg = regnum(v.Args[0])
 		p.From.Scale = 1
 		p.From.Index = regnum(v.Args[1])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64ADDL:
 		p = CreateProg(x86.ALEAL)
 		p.From.Type = TYPE_MEM
@@ -3512,6 +3524,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Index = regnum(v.Args[1])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64ADDW:
 		p = CreateProg(x86.ALEAW)
 		p.From.Type = TYPE_MEM
@@ -3520,6 +3533,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Index = regnum(v.Args[1])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	// 2-address opcode arithmetic, symmetric
 	case ssa.OpAMD64ADDB, ssa.OpAMD64ADDSS, ssa.OpAMD64ADDSD,
 		ssa.OpAMD64ANDQ, ssa.OpAMD64ANDL, ssa.OpAMD64ANDW, ssa.OpAMD64ANDB,
@@ -3543,6 +3557,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		} else {
 			p.From.Reg = x
 		}
+		progs = append(progs, p)
 	// 2-address opcode arithmetic, not symmetric
 	case ssa.OpAMD64SUBQ, ssa.OpAMD64SUBL, ssa.OpAMD64SUBW, ssa.OpAMD64SUBB:
 		r := regnum(v)
@@ -3564,6 +3579,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 			p.To.Type = TYPE_REG
 			p.To.Reg = r
 		}
+		progs = append(progs, p)
 	case ssa.OpAMD64SUBSS, ssa.OpAMD64SUBSD, ssa.OpAMD64DIVSS, ssa.OpAMD64DIVSD:
 		r := regnum(v)
 		x := regnum(v.Args[0])
@@ -3664,9 +3680,10 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 			}
 
 			j.To.Val = n
-			j2.To.Val = Pc
+			panic("TODO")
+			//j2.To.Val = Pc
 		}
-
+		progs = append(progs, p)
 	case ssa.OpAMD64HMULL, ssa.OpAMD64HMULW, ssa.OpAMD64HMULB,
 		ssa.OpAMD64HMULLU, ssa.OpAMD64HMULWU, ssa.OpAMD64HMULBU:
 		// the frontend rewrites constant division by 8/16/32 bit integers into
@@ -3687,7 +3704,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 			m.To.Type = TYPE_REG
 			m.To.Reg = x86.REG_DX
 		}
-
+		progs = append(progs, p)
 	case ssa.OpAMD64SHLQ, ssa.OpAMD64SHLL, ssa.OpAMD64SHLW, ssa.OpAMD64SHLB,
 		ssa.OpAMD64SHRQ, ssa.OpAMD64SHRL, ssa.OpAMD64SHRW, ssa.OpAMD64SHRB,
 		ssa.OpAMD64SARQ, ssa.OpAMD64SARL, ssa.OpAMD64SARW, ssa.OpAMD64SARB:
@@ -3708,6 +3725,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Reg = regnum(v.Args[1]) // should be CX
 		p.To.Type = TYPE_REG
 		p.To.Reg = r
+		progs = append(progs, p)
 	case ssa.OpAMD64ADDQconst, ssa.OpAMD64ADDLconst, ssa.OpAMD64ADDWconst:
 		// TODO: use addq instead of leaq if target is in the right register.
 		var asm int
@@ -3725,6 +3743,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Offset = v.AuxInt
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MULQconst, ssa.OpAMD64MULLconst, ssa.OpAMD64MULWconst, ssa.OpAMD64MULBconst:
 		r := regnum(v)
 		x := regnum(v.Args[0])
@@ -3745,6 +3764,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		//p.From3 = new(obj.Addr)
 		//p.From3.Type = TYPE_REG
 		//p.From3.Reg = regnum(v.Args[0])
+		progs = append(progs, p)
 	case ssa.OpAMD64ADDBconst,
 		ssa.OpAMD64ANDQconst, ssa.OpAMD64ANDLconst, ssa.OpAMD64ANDWconst, ssa.OpAMD64ANDBconst,
 		ssa.OpAMD64ORQconst, ssa.OpAMD64ORLconst, ssa.OpAMD64ORWconst, ssa.OpAMD64ORBconst,
@@ -3770,6 +3790,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Offset = v.AuxInt
 		p.To.Type = TYPE_REG
 		p.To.Reg = r
+		progs = append(progs, p)
 	case ssa.OpAMD64SBBQcarrymask, ssa.OpAMD64SBBLcarrymask:
 		r := regnum(v)
 		p = CreateProg(v.Op.Asm())
@@ -3777,6 +3798,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Reg = r
 		p.To.Type = TYPE_REG
 		p.To.Reg = r
+		progs = append(progs, p)
 	case ssa.OpAMD64LEAQ1, ssa.OpAMD64LEAQ2, ssa.OpAMD64LEAQ4, ssa.OpAMD64LEAQ8:
 		p = CreateProg(x86.ALEAQ)
 		p.From.Type = TYPE_MEM
@@ -3795,6 +3817,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		addAux(&p.From, v)
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64LEAQ:
 		p = CreateProg(x86.ALEAQ)
 		p.From.Type = TYPE_MEM
@@ -3802,6 +3825,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		addAux(&p.From, v)
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64CMPQ, ssa.OpAMD64CMPL, ssa.OpAMD64CMPW, ssa.OpAMD64CMPB,
 		ssa.OpAMD64TESTQ, ssa.OpAMD64TESTL, ssa.OpAMD64TESTW, ssa.OpAMD64TESTB:
 		opregreg(v.Op.Asm(), regnum(v.Args[1]), regnum(v.Args[0]))
@@ -3816,6 +3840,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Reg = regnum(v.Args[0])
 		p.To.Type = TYPE_CONST
 		p.To.Offset = v.AuxInt
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVBconst, ssa.OpAMD64MOVWconst, ssa.OpAMD64MOVLconst, ssa.OpAMD64MOVQconst:
 		x := regnum(v)
 		p = CreateProg(v.Op.Asm())
@@ -3834,6 +3859,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Offset = i
 		p.To.Type = TYPE_REG
 		p.To.Reg = x
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVSSconst, ssa.OpAMD64MOVSDconst:
 		x := regnum(v)
 		p = CreateProg(v.Op.Asm())
@@ -3841,6 +3867,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Val = math.Float64frombits(uint64(v.AuxInt))
 		p.To.Type = TYPE_REG
 		p.To.Reg = x
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVQload, ssa.OpAMD64MOVSSload, ssa.OpAMD64MOVSDload, ssa.OpAMD64MOVLload, ssa.OpAMD64MOVWload, ssa.OpAMD64MOVBload, ssa.OpAMD64MOVBQSXload, ssa.OpAMD64MOVBQZXload, ssa.OpAMD64MOVOload:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_MEM
@@ -3848,6 +3875,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		addAux(&p.From, v)
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVQloadidx8, ssa.OpAMD64MOVSDloadidx8:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_MEM
@@ -3857,6 +3885,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Index = regnum(v.Args[1])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVSSloadidx4:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_MEM
@@ -3866,6 +3895,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.From.Index = regnum(v.Args[1])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVQstore, ssa.OpAMD64MOVSSstore, ssa.OpAMD64MOVSDstore, ssa.OpAMD64MOVLstore, ssa.OpAMD64MOVWstore, ssa.OpAMD64MOVBstore, ssa.OpAMD64MOVOstore:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_REG
@@ -3873,6 +3903,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Type = TYPE_MEM
 		p.To.Reg = regnum(v.Args[0])
 		addAux(&p.To, v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVQstoreidx8, ssa.OpAMD64MOVSDstoreidx8:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_REG
@@ -3882,6 +3913,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Scale = 8
 		p.To.Index = regnum(v.Args[1])
 		addAux(&p.To, v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVSSstoreidx4:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_REG
@@ -3891,6 +3923,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Scale = 4
 		p.To.Index = regnum(v.Args[1])
 		addAux(&p.To, v)
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVQstoreconst, ssa.OpAMD64MOVLstoreconst, ssa.OpAMD64MOVWstoreconst, ssa.OpAMD64MOVBstoreconst:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_CONST
@@ -3909,6 +3942,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Type = TYPE_MEM
 		p.To.Reg = regnum(v.Args[0])
 		addAux2(&p.To, v, sc.Off())
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVLQSX, ssa.OpAMD64MOVWQSX, ssa.OpAMD64MOVBQSX, ssa.OpAMD64MOVLQZX, ssa.OpAMD64MOVWQZX, ssa.OpAMD64MOVBQZX,
 		ssa.OpAMD64CVTSL2SS, ssa.OpAMD64CVTSL2SD, ssa.OpAMD64CVTSQ2SS, ssa.OpAMD64CVTSQ2SD,
 		ssa.OpAMD64CVTTSS2SL, ssa.OpAMD64CVTTSD2SL, ssa.OpAMD64CVTTSS2SQ, ssa.OpAMD64CVTTSD2SQ,
@@ -3919,6 +3953,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Type = TYPE_ADDR
 		//p.To.Sym = Linksym(Pkglookup("duffzero", Runtimepkg))
 		p.To.Offset = v.AuxInt
+		progs = append(progs, p)
 	case ssa.OpAMD64MOVOconst:
 		if v.AuxInt != 0 {
 			v.Unimplementedf("MOVOconst can only do constant=0")
@@ -3930,7 +3965,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p.To.Type = TYPE_ADDR
 		//p.To.Sym = Linksym(Pkglookup("duffcopy", Runtimepkg))
 		p.To.Offset = v.AuxInt
-
+		progs = append(progs, p)
 	case ssa.OpCopy: // TODO: lower to MOVQ earlier?
 		if v.Type.IsMemory() {
 			panic("unimplementedf")
@@ -3961,7 +3996,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		}*/
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
-
+		progs = append(progs, p)
 	case ssa.OpStoreReg:
 		if v.Type.IsFlags() {
 			v.Unimplementedf("store flags not implemented: %v", v.LongString())
@@ -3982,6 +4017,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		} else {
 			p.To.Name = obj.NAME_AUTO
 		}*/
+		progs = append(progs, p)
 	case ssa.OpPhi:
 		// just check to make sure regalloc and stackalloc did it right
 		if v.Type.IsMemory() {
@@ -4092,6 +4128,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		if Maxarg < v.AuxInt {
 			Maxarg = v.AuxInt
 		}
+		progs = append(progs, p)
 	case ssa.OpAMD64NEGQ, ssa.OpAMD64NEGL, ssa.OpAMD64NEGW, ssa.OpAMD64NEGB,
 		ssa.OpAMD64NOTQ, ssa.OpAMD64NOTL, ssa.OpAMD64NOTW, ssa.OpAMD64NOTB:
 		x := regnum(v.Args[0])
@@ -4106,12 +4143,14 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p = CreateProg(v.Op.Asm())
 		p.To.Type = TYPE_REG
 		p.To.Reg = r
+		progs = append(progs, p)
 	case ssa.OpAMD64SQRTSD:
 		p = CreateProg(v.Op.Asm())
 		p.From.Type = TYPE_REG
 		p.From.Reg = regnum(v.Args[0])
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
+		progs = append(progs, p)
 	case ssa.OpSP, ssa.OpSB:
 		// nothing to do
 	case ssa.OpAMD64SETEQ, ssa.OpAMD64SETNE,
@@ -4124,7 +4163,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		p = CreateProg(v.Op.Asm())
 		p.To.Type = TYPE_REG
 		p.To.Reg = regnum(v)
-
+		progs = append(progs, p)
 	case ssa.OpAMD64SETNEF:
 		p = CreateProg(v.Op.Asm())
 		p.To.Type = TYPE_REG
@@ -4134,7 +4173,7 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		q.To.Reg = x86.REG_AX
 		// TODO AORQ copied from old code generator, why not AORB?
 		opregreg(x86.AORQ, regnum(v), x86.REG_AX)
-
+		progs = append(progs, p)
 	case ssa.OpAMD64SETEQF:
 		p = CreateProg(v.Op.Asm())
 		p.To.Type = TYPE_REG
@@ -4144,15 +4183,19 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		q.To.Reg = x86.REG_AX
 		// TODO AANDQ copied from old code generator, why not AANDB?
 		opregreg(x86.AANDQ, regnum(v), x86.REG_AX)
-
+		progs = append(progs, p)
 	case ssa.OpAMD64InvertFlags:
 		v.Fatalf("InvertFlags should never make it to codegen %v", v)
 	case ssa.OpAMD64REPSTOSQ:
-		CreateProg(x86.AREP)
-		CreateProg(x86.ASTOSQ)
+		p := CreateProg(x86.AREP)
+		q := CreateProg(x86.ASTOSQ)
+		progs = append(progs, p)
+		progs = append(progs, q)
 	case ssa.OpAMD64REPMOVSQ:
-		CreateProg(x86.AREP)
-		CreateProg(x86.AMOVSQ)
+		p := CreateProg(x86.AREP)
+		q := CreateProg(x86.AMOVSQ)
+		progs = append(progs, p)
+		progs = append(progs, q)
 	case ssa.OpVarDef:
 		panic("unimplementedf")
 		//Gvardef(v.Aux.(*Node))
@@ -4204,11 +4247,12 @@ func (s *genState) genValue(v *ssa.Value) *Prog {
 		if Debug_checknil != 0 && v.Line > 1 { // v.Line==1 in generated wrappers
 			Warnl(int(v.Line), "generated nil check")
 		}
+		progs = append(progs, p)
 	default:
 		panic("unimplementedf")
 		//v.Unimplementedf("genValue not implemented: %s", v.LongString())
 	}
-	return p
+	return progs
 }
 
 // movSizeByType returns the MOV instruction of the given type.
@@ -4305,9 +4349,9 @@ var nefJumps = [2][2]floatingEQNEJump{
 	}
 }*/
 
-func (s *genState) genBlock(b, next *ssa.Block) {
+func (s *genState) genBlock(b, next *ssa.Block) []*Prog {
 	//TODO
-	return
+	return nil
 	/*lineno = b.Line
 
 	switch b.Kind {
