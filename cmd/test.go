@@ -8,20 +8,24 @@ func test1() {
 }
 
 func test2() int {
+	return 1
+}
+
+func test3() int {
 	return -1
 }
 
-func test3(x int) int {
+func test4(x int) int {
 	return x
 }
 
-func test4() int {
+func test5() int {
 	var vk int
 	vk = 11
 	return vk
 }
 
-func test5() int {
+func test6() int {
 	var vk int
 	x := vk == 0
 	if x {
@@ -31,7 +35,7 @@ func test5() int {
 	}
 }
 
-func test6() int {
+func test7() int {
 	var vk int
 	if vk == 0 {
 		return vk
