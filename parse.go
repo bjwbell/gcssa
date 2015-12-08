@@ -12,10 +12,10 @@ import (
 )
 
 type phi struct {
-	parent   *ast.AssignStmt
-	node     ast.Expr
-	varIdent *ast.Ident
-	varType  *ast.Ident
+	parent  *ast.AssignStmt
+	varName *ast.Ident
+	typ     *ast.Ident
+	expr    ast.Expr
 }
 
 type ssaVar struct {
@@ -24,10 +24,57 @@ type ssaVar struct {
 }
 
 type fnSSA struct {
-	phis       []phi
+	phi        []phi
 	removedPhi []phi
 	vars       []ssaVar
-	fnDecl     *ast.FuncDecl
+	decl       *ast.FuncDecl
+}
+
+func (fn *fnSSA) initPhi() bool {
+
+	ast.Inspect(fn.decl, func(n ast.Node) bool {
+		assignStmt, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		if len(assignStmt.Lhs) != 1 {
+			panic("invalid assignment stmt")
+		}
+		if len(assignStmt.Lhs) != 2 {
+			return true
+		}
+		if _, ok := assignStmt.Lhs[0].(*ast.Ident); !ok {
+			return true
+		}
+		phiType, ok := assignStmt.Rhs[1].(*ast.Ident)
+		if !ok {
+			return true
+		}
+		phiExpr := assignStmt.Rhs[0]
+		phiLit, ok := phiExpr.(*ast.CompositeLit)
+		if !ok {
+			return true
+		}
+		if phiLit.Type == nil {
+			return true
+		}
+		phiIdent, ok := phiLit.Type.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		if phiIdent.Name != "phi" {
+			return true
+		}
+		var phi phi
+		phi.parent = assignStmt
+		phi.expr = phiExpr
+		phi.typ = phiType
+		phi.varName = assignStmt.Lhs[0].(*ast.Ident)
+		fn.phi = append(fn.phi, phi)
+		return true
+	})
+
+	return true
 }
 
 func (fn *fnSSA) removePhi() bool {
@@ -76,7 +123,7 @@ func ParseSSA(file, pkgName, fn string) (ssafn *ssa.Func, usessa bool) {
 		return
 	}
 
-	fnSSA := fnSSA{fnDecl: fnDcl, removedPhi: []phi{}, vars: []ssaVar{}}
+	fnSSA := fnSSA{decl: fnDcl, removedPhi: []phi{}, vars: []ssaVar{}}
 
 	if !fnSSA.removePhi() {
 		fmt.Printf("Error rewriting phi vars")
