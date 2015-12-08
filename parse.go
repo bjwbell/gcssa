@@ -12,15 +12,19 @@ import (
 )
 
 type phi struct {
-	node ast.Node
+	parent   *ast.AssignStmt
+	node     ast.Expr
+	varIdent *ast.Ident
+	varType  *ast.Ident
 }
 
 type ssaVar struct {
 	name string
-	node ast.Node
+	node *ast.AssignStmt
 }
 
 type fnSSA struct {
+	phis       []phi
 	removedPhi []phi
 	vars       []ssaVar
 	fnDecl     *ast.FuncDecl
