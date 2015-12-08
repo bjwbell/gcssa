@@ -11,6 +11,33 @@ import (
 	"github.com/bjwbell/ssa"
 )
 
+type phi struct {
+	node ast.Node
+}
+
+type ssaVar struct {
+	name string
+	node ast.Node
+}
+
+type fnSSA struct {
+	removedPhi []phi
+	vars       []ssaVar
+	fnDecl     *ast.FuncDecl
+}
+
+func (fn *fnSSA) removePhi() bool {
+	return true
+}
+
+func (fn *fnSSA) rewriteAssign() bool {
+	return true
+}
+
+func (fn *fnSSA) restorePhi() bool {
+	return true
+}
+
 // ParseSSA parses the function, fn, which must be in ssa form and returns
 // the corresponding ssa.Func
 func ParseSSA(file, pkgName, fn string) (ssafn *ssa.Func, usessa bool) {
@@ -28,6 +55,38 @@ func ParseSSA(file, pkgName, fn string) (ssafn *ssa.Func, usessa bool) {
 		terrors += fmt.Sprintf("err: %v\n", err)
 		return
 	}
+
+	ast.FilterFile(fileAst, func(declName string) bool {
+		return declName == fn
+	})
+
+	var fnDcl *ast.FuncDecl
+	for _, decl := range fileAst.Decls {
+		if fdecl, ok := decl.(*ast.FuncDecl); ok {
+			fnDcl = fdecl
+		}
+	}
+
+	if fnDcl == nil {
+		fmt.Printf("Error \"%v\" not found", fn)
+		return
+	}
+
+	fnSSA := fnSSA{fnDecl: fnDcl, removedPhi: []phi{}, vars: []ssaVar{}}
+
+	if !fnSSA.removePhi() {
+		fmt.Printf("Error rewriting phi vars")
+		return
+	}
+	if !fnSSA.rewriteAssign() {
+		fmt.Printf("Error rewriting assignments")
+		return
+	}
+	if !fnSSA.restorePhi() {
+		fmt.Printf("Error rewriting phi vars")
+		return
+	}
+
 	files := []*ast.File{fileAst}
 	info := types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
